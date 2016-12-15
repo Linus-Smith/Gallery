@@ -31,10 +31,6 @@ public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeLi
     private VideoScreenNail videoScreenNail;
     private boolean first;
 
-    public void setVideoScreenNail(VideoScreenNail videoScreenNail) {
-        this.videoScreenNail = videoScreenNail;
-    }
-
     public VideoScreenNail getVideoScreenNail() {
         return videoScreenNail;
     }
@@ -42,9 +38,11 @@ public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeLi
     public VideoView(Context context) {
         mContext = context;
         mPlayBits = new PlayBits();
+        videoScreenNail = new VideoScreenNail();
         mPlayBits.setOnNotifyChangeListener(this);
         setBackgroundColor(new float[]{0,0,0,0});
     }
+
 
     @Override
     protected void onLayout(boolean changeSize, int left, int top, int right, int bottom) {
@@ -74,10 +72,6 @@ public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeLi
         mPlayBits.prepare(mediaStream);
     }
 
-    public void prepareNext(MediaStream mediaStream){
-        Utils.checkNull(mediaStream, "VideoVIew prepare NULL");
-        mPlayBits.prepareNext(mediaStream);
-    }
 
     @Override
     @Annotation.IInterface("VIPlayControl")

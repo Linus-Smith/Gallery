@@ -10,7 +10,7 @@ import android.view.Surface;
 import com.android.gallery3d.app.VideoDomeActivity;
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.glrenderer.GLPaint;
-import com.android.gallery3d.mediaCore.view.VIPlayControl;
+import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
 import com.android.gallery3d.ui.GLRoot;
 import com.android.gallery3d.ui.SurfaceTextureScreenNail;
 
@@ -21,7 +21,7 @@ import java.io.IOException;
  * Created by bruce.jiang on 2016/11/30.
  */
 
-public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePlayer.PlayerFeedback ,MoviePlayer.UpdatePlayTimeCallback,VIPlayControl{
+public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePlayer.PlayerFeedback ,MoviePlayer.UpdatePlayTimeCallback,VIPlayControl {
     private static final String TAG = "VideoScreenNail";
 
     private MoviePlayer.PlayTask mPlayTask;

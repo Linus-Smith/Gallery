@@ -46,6 +46,12 @@ public abstract class ComboStream extends MediaStream {
     }
 
     @Override
+    public void prepare() {
+        super.prepare();
+        mCurrentStream.prepare();
+    }
+
+    @Override
     public void start() {
         super.start();
         if(mTransitionPlayMode == TRANSITION_PLAY_MODE_MERGE) {

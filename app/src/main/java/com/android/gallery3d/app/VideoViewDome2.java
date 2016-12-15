@@ -159,7 +159,8 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                File mFile = new File("/storage/emulated/0/DCIM/Camera/g.mp4");
+                mVideo.stop();
+                File mFile = new File("/storage/emulated/0/sintel.mp4");
 
                 MediaStream mMediaStream = null;
                 Bitmap mBitmap = getBitmap();
@@ -169,7 +170,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
                   //  alphaComboStream.setTransitionPlayMode(StateIs.TRANSITION_PLAY_MODE_ISOLATE);
                     mMediaStream = alphaComboStream;
                 } else {
-                    AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail())) );
+                    AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail()) );
                     alphaComboStrea.setTransitionAnimDuration(1000);
                     mMediaStream = alphaComboStrea;
                 }
