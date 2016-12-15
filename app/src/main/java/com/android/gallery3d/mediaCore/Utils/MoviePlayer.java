@@ -37,7 +37,7 @@ import java.nio.ByteBuffer;
  */
 public class MoviePlayer {
     private static final String TAG = "MoviePlayer";
-    private static final boolean VERBOSE = false;
+    private static final boolean VERBOSE = true;
 
     // Declare this here to reduce allocations.
     private MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
@@ -45,14 +45,23 @@ public class MoviePlayer {
     // May be set/read by different threads.
     private volatile boolean mIsStopRequested;
 
+    private volatile boolean mIsPauseRequested;
+
     private File mSourceFile;
     private Surface mOutputSurface;
     FrameCallback mFrameCallback;
+    UpdatePlayTimeCallback mUpdatePlayTimeCallback;
     private boolean mLoop;
     private int mVideoWidth;
     private int mVideoHeight;
+    boolean isSeek = false;
+    long seekTime = 0L;
+    private final Object mPauseLock = new Object();
 
-
+    MediaExtractor extractor = null;
+    MediaCodec decoder = null;
+    MediaFormat format;
+    int trackIndex;
     /**
      * Interface to be implemented by class that manages playback UI.
      * <p>
@@ -62,6 +71,9 @@ public class MoviePlayer {
         void playbackStopped();
     }
 
+    public interface UpdatePlayTimeCallback{
+        void updateCurrentPlayTime(long currentPlayTime);
+    }
 
     /**
      * Callback invoked when rendering video frames.  The MoviePlayer client must
@@ -86,6 +98,11 @@ public class MoviePlayer {
          * callback to adjust its expectations of the next presentation time stamp.
          */
         void loopReset();
+
+
+        void resetPrevMono();
+
+        void setPrevPresentUsec(long timeUs);
     }
 
 
@@ -97,37 +114,38 @@ public class MoviePlayer {
      * @param frameCallback Callback object, used to pace output.
      * @throws IOException
      */
-    public MoviePlayer(File sourceFile, Surface outputSurface, FrameCallback frameCallback)
+    public MoviePlayer(File sourceFile, Surface outputSurface, FrameCallback frameCallback, UpdatePlayTimeCallback updatePlayTimeCallback)
             throws IOException {
         mSourceFile = sourceFile;
         mOutputSurface = outputSurface;
         mFrameCallback = frameCallback;
+        mUpdatePlayTimeCallback = updatePlayTimeCallback;
 
         // Pop the file open and pull out the video characteristics.
         // TODO: consider leaving the extractor open.  Should be able to just seek back to
         //       the start after each iteration of play.  Need to rearrange the API a bit --
         //       currently play() is taking an all-in-one open+work+release approach.
-        MediaExtractor extractor = null;
-        try {
-            extractor = new MediaExtractor();
-            extractor.setDataSource(sourceFile.toString());
-            int trackIndex = selectTrack(extractor);
-            if (trackIndex < 0) {
-                throw new RuntimeException("No video track found in " + mSourceFile);
-            }
-            extractor.selectTrack(trackIndex);
-
-            MediaFormat format = extractor.getTrackFormat(trackIndex);
-            mVideoWidth = format.getInteger(MediaFormat.KEY_WIDTH);
-            mVideoHeight = format.getInteger(MediaFormat.KEY_HEIGHT);
-            if (VERBOSE) {
-                Log.d(TAG, "Video size is " + mVideoWidth + "x" + mVideoHeight);
-            }
-        } finally {
-            if (extractor != null) {
-                extractor.release();
-            }
-        }
+//        MediaExtractor extractor = null;
+//        try {
+//            extractor = new MediaExtractor();
+//            extractor.setDataSource(sourceFile.toString());
+//            int trackIndex = selectTrack(extractor);
+//            if (trackIndex < 0) {
+//                throw new RuntimeException("No video track found in " + mSourceFile);
+//            }
+//            extractor.selectTrack(trackIndex);
+//
+//            MediaFormat format = extractor.getTrackFormat(trackIndex);
+//            mVideoWidth = format.getInteger(MediaFormat.KEY_WIDTH);
+//            mVideoHeight = format.getInteger(MediaFormat.KEY_HEIGHT);
+//            if (VERBOSE) {
+//                Log.d(TAG, "Video size is " + mVideoWidth + "x" + mVideoHeight);
+//            }
+//        } finally {
+//            if (extractor != null) {
+//                extractor.release();
+//            }
+//        }
     }
 
     /**
@@ -160,15 +178,46 @@ public class MoviePlayer {
         mIsStopRequested = true;
     }
 
+
+    public void pause(){
+        mIsPauseRequested = !mIsPauseRequested;
+        if(!mIsPauseRequested){
+            notifyPause();
+        }
+    }
     /**
      * Decodes the video stream, sending frames to the surface.
      * <p>
      * Does not return until video playback is complete, or we get a "stop" signal from
      * frameCallback.
      */
+    public void prepare()throws IOException {
+
+        // The MediaExtractor error messages aren't very useful.  Check to see if the input
+        // file exists so we can throw a better one if it's not there.
+        if (!mSourceFile.canRead()) {
+            throw new FileNotFoundException("Unable to read " + mSourceFile);
+        }
+
+        extractor = new MediaExtractor();
+        extractor.setDataSource(mSourceFile.toString());
+        trackIndex = selectTrack(extractor);
+        if (trackIndex < 0) {
+            throw new RuntimeException("No video track found in " + mSourceFile);
+        }
+        extractor.selectTrack(trackIndex);
+
+        format = extractor.getTrackFormat(trackIndex);
+
+        // Create a MediaCodec decoder, and configure it with the MediaFormat from the
+        // extractor.  It's very important to use the format from the extractor because
+        // it contains a copy of the CSD-0/CSD-1 codec-specific data chunks.
+        String mime = format.getString(MediaFormat.KEY_MIME);
+        decoder = MediaCodec.createDecoderByType(mime);
+    }
+
+
     public void play() throws IOException {
-        MediaExtractor extractor = null;
-        MediaCodec decoder = null;
 
         // The MediaExtractor error messages aren't very useful.  Check to see if the input
         // file exists so we can throw a better one if it's not there.
@@ -177,25 +226,25 @@ public class MoviePlayer {
         }
 
         try {
-            extractor = new MediaExtractor();
-            extractor.setDataSource(mSourceFile.toString());
-            int trackIndex = selectTrack(extractor);
-            if (trackIndex < 0) {
-                throw new RuntimeException("No video track found in " + mSourceFile);
-            }
-            extractor.selectTrack(trackIndex);
-
-            MediaFormat format = extractor.getTrackFormat(trackIndex);
-
-            // Create a MediaCodec decoder, and configure it with the MediaFormat from the
-            // extractor.  It's very important to use the format from the extractor because
-            // it contains a copy of the CSD-0/CSD-1 codec-specific data chunks.
-            String mime = format.getString(MediaFormat.KEY_MIME);
-            decoder = MediaCodec.createDecoderByType(mime);
+//            extractor = new MediaExtractor();
+//            extractor.setDataSource(mSourceFile.toString());
+//            int trackIndex = selectTrack(extractor);
+//            if (trackIndex < 0) {
+//                throw new RuntimeException("No video track found in " + mSourceFile);
+//            }
+//            extractor.selectTrack(trackIndex);
+//
+//            MediaFormat format = extractor.getTrackFormat(trackIndex);
+//
+//            // Create a MediaCodec decoder, and configure it with the MediaFormat from the
+//            // extractor.  It's very important to use the format from the extractor because
+//            // it contains a copy of the CSD-0/CSD-1 codec-specific data chunks.
+//            String mime = format.getString(MediaFormat.KEY_MIME);
+//            decoder = MediaCodec.createDecoderByType(mime);
             decoder.configure(format, mOutputSurface, null, 0);
             decoder.start();
 
-            doExtract(extractor, trackIndex, decoder, mFrameCallback);
+            doExtract(extractor, trackIndex, decoder, mFrameCallback,mUpdatePlayTimeCallback);
         } finally {
             // release everything we grabbed
             if (decoder != null) {
@@ -236,7 +285,7 @@ public class MoviePlayer {
      * Work loop.  We execute here until we run out of video or are told to stop.
      */
     private void doExtract(MediaExtractor extractor, int trackIndex, MediaCodec decoder,
-                           FrameCallback frameCallback) {
+                           FrameCallback frameCallback, UpdatePlayTimeCallback updatePlayTimeCallback) {
         // We need to strike a balance between providing input and reading output that
         // operates efficiently without delays on the output side.
         //
@@ -308,7 +357,21 @@ public class MoviePlayer {
                 Log.d(TAG, "Stop requested");
                 return;
             }
+            if(isSeek){
+                decoder.flush();
+                extractor.seekTo(seekTime, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+                long presentationTimeUs = extractor.getSampleTime();
+                Log.i(TAG,"seek presentationTimeUs"+presentationTimeUs);
+                if(frameCallback!=null){
+                    frameCallback.resetPrevMono();
+                    frameCallback.setPrevPresentUsec(presentationTimeUs);
 
+                }
+
+                isSeek = false;
+                Log.d(TAG, "isSeek");
+            }
+            waitPause();
             // Feed more data to the decoder.
             if (!inputDone) {
                 int inputBufIndex = decoder.dequeueInputBuffer(TIMEOUT_USEC);
@@ -332,6 +395,7 @@ public class MoviePlayer {
                                     extractor.getSampleTrackIndex() + ", expected " + trackIndex);
                         }
                         long presentationTimeUs = extractor.getSampleTime();
+                        Log.d(TAG, " presentationTimeUs = "+presentationTimeUs);
                         decoder.queueInputBuffer(inputBufIndex, 0, chunkSize,
                                 presentationTimeUs, 0 /*flags*/);
                         if (VERBOSE) {
@@ -387,12 +451,34 @@ public class MoviePlayer {
                     // to SurfaceTexture to convert to a texture.  We can't control when it
                     // appears on-screen, but we can manage the pace at which we release
                     // the buffers.
-                    if (doRender && frameCallback != null) {
-                        frameCallback.preRender(mBufferInfo.presentationTimeUs);
-                    }
-                    decoder.releaseOutputBuffer(decoderStatus, doRender);
-                    if (doRender && frameCallback != null) {
-                        frameCallback.postRender();
+
+
+//                    if (doRender && frameCallback != null) {
+//                        frameCallback.preRender(mBufferInfo.presentationTimeUs);
+//                        Log.d(TAG, " mBufferInfo.presentationTimeUs = "+mBufferInfo.presentationTimeUs);
+//                    }
+                    if(mBufferInfo.presentationTimeUs<seekTime){
+                        if (doRender && frameCallback != null) {
+                            frameCallback.setPrevPresentUsec(mBufferInfo.presentationTimeUs);
+//                        Log.d(TAG, " mBufferInfo.presentationTimeUs = "+mBufferInfo.presentationTimeUs);
+                        }
+                        decoder.releaseOutputBuffer(decoderStatus, false);
+                        Log.d(TAG, " mBufferInfo. 1presentationTimeUs = "+mBufferInfo.presentationTimeUs);
+                    }else {
+                        seekTime = 0;
+                        if (doRender && frameCallback != null) {
+                            frameCallback.preRender(mBufferInfo.presentationTimeUs);
+//                        Log.d(TAG, " mBufferInfo.presentationTimeUs = "+mBufferInfo.presentationTimeUs);
+                        }
+                        decoder.releaseOutputBuffer(decoderStatus, doRender);
+
+                        if (doRender && frameCallback != null) {
+                            frameCallback.postRender();
+                        }
+                        if(doRender && updatePlayTimeCallback!=null){
+                            updatePlayTimeCallback.updateCurrentPlayTime(mBufferInfo.presentationTimeUs/1000);
+                        }
+                        Log.d(TAG, " mBufferInfo. 2presentationTimeUs = "+mBufferInfo.presentationTimeUs);
                     }
 
                     if (doLoop) {
@@ -403,6 +489,33 @@ public class MoviePlayer {
                         frameCallback.loopReset();
                     }
                 }
+            }
+        }
+    }
+
+    private void seekToTime(long timeUs){
+        seekTime = timeUs;
+        isSeek = true;
+        Log.i(TAG,"seek timeUs"+timeUs);
+    }
+
+
+    private void waitPause() {
+        synchronized (mPauseLock) {
+            while (mIsPauseRequested) {
+                try {
+                    mPauseLock.wait();
+                } catch (InterruptedException ie) {
+                    // discard
+                }
+            }
+        }
+    }
+    private void notifyPause() {
+        synchronized (mPauseLock) {
+            mPauseLock.notify();
+            if(mFrameCallback!=null){
+                mFrameCallback.resetPrevMono();
             }
         }
     }
@@ -463,6 +576,14 @@ public class MoviePlayer {
             mPlayer.requestStop();
         }
 
+
+        public void pause() {
+            mPlayer.pause();
+        }
+        public void seekToTime(long timeUs) {
+            mPlayer.seekToTime(timeUs);
+        }
+
         /**
          * Wait for the player to stop.
          * <p>
@@ -477,6 +598,14 @@ public class MoviePlayer {
                         // discard
                     }
                 }
+            }
+        }
+
+        public void prepare(){
+            try {
+                mPlayer.prepare();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 

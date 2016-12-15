@@ -20,6 +20,7 @@ public class PlayBits implements VIPlayControl ,StateIs{
     protected int mWidth;
     protected int mHeight;
     private MediaStream mCurrentMediaStream;
+    private MediaStream mNextMediaStream;
 
     private OnNotifyChangeListener mOnNotifyChangeListener;
 
@@ -52,13 +53,29 @@ public class PlayBits implements VIPlayControl ,StateIs{
 
 
     public void prepare(MediaStream mediaStream) {
-        this.mCurrentMediaStream = mediaStream;
-        mCurrentMediaStream.setResolution(mWidth, mHeight);
+        if(mNextMediaStream!=null){
+            this.mCurrentMediaStream = mNextMediaStream;
+            mNextMediaStream = mediaStream;
+            mNextMediaStream.setResolution(mWidth, mHeight);
+        }else {
+            this.mCurrentMediaStream = mediaStream;
+            mCurrentMediaStream.setResolution(mWidth, mHeight);
+        }
+        mediaStream.prepare();
+        mOnNotifyChangeListener.doInvalidate();
+    }
+
+    public void prepareNext(MediaStream mediaStream) {
+        this.mNextMediaStream = mediaStream;
+        mNextMediaStream.setResolution(mWidth, mHeight);
+        mediaStream.prepare();
+        mOnNotifyChangeListener.doInvalidate();
     }
 
     @Override
     public void prepare() {
         mCurrentMediaStream.pause();
+        mOnNotifyChangeListener.doInvalidate();
     }
 
     @Override

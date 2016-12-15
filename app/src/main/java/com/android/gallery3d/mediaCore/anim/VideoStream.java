@@ -24,6 +24,12 @@ public class VideoStream extends MediaStream {
         mVideoPath = videoPath;
     }
 
+    public VideoStream(File videoPath, VideoScreenNail videoScreenNail) {
+        if(!videoPath.exists()) throw new RuntimeException("video not exists ");
+        mVideoScreenNail  = videoScreenNail;
+        mVideoScreenNail.setmFile(videoPath);
+        mVideoPath = videoPath;
+    }
 
     @Override
     public void apply(GLCanvas canvas) {
@@ -36,4 +42,47 @@ public class VideoStream extends MediaStream {
     protected void onCalculate(float progress) {
 
     }
+
+    @Override
+    public void prepare() {
+        mVideoScreenNail.prepare();
+    }
+
+    @Override
+    public void start() {
+        if(mPlayState != PLAY_STATE_START){
+            mVideoScreenNail.start();
+        }
+        super.start();
+
+    }
+    @Override
+    public void pause() {
+
+
+        if(mPlayState == PLAY_STATE_START){
+            mVideoScreenNail.pause();
+        }
+        super.pause();
+    }
+
+    public void stop(){
+
+        super.stop();
+        mVideoScreenNail.stop();
+    }
+
+    @Override
+    public void seekTo(long durationT) {
+
+        super.seekTo(durationT);
+        mVideoScreenNail.seekTo(durationT*1000);
+    }
+
+    @Override
+    public void restart() {
+        super.restart();
+        mVideoScreenNail.restart();
+    }
+
 }

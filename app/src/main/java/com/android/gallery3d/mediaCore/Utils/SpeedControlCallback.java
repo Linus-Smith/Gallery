@@ -143,4 +143,13 @@ public class SpeedControlCallback implements MoviePlayer.FrameCallback {
     public void loopReset() {
         mLoopReset = true;
     }
+    @Override
+    public void resetPrevMono() {
+        mPrevMonoUsec = 0;
+    }
+
+    @Override
+    public void setPrevPresentUsec(long timeUs) {
+        mPrevPresentUsec = timeUs;
+    }
 }

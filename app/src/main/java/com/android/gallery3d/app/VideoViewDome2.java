@@ -12,6 +12,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.android.gallery3d.R;
+import com.android.gallery3d.mediaCore.Utils.VideoScreenNail;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.mediaCore.anim.VideoStream;
 import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
@@ -39,6 +40,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
 
     private TextView tvCuTime;
     private TextView tvDuTime;
+    private boolean isSeek;
 
     private Handler mHandler = new Handler() {
         @Override
@@ -73,6 +75,8 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         btPause.setOnClickListener(this);
         btStop.setOnClickListener(this);
         btPlayState.setOnClickListener(this);
+        VideoScreenNail videoScreenNail = new VideoScreenNail();
+        mVideo.setVideoScreenNail(videoScreenNail);
         mView.setContentPane(mVideo);
         mVideo.setPlayStateListener(this);
     }
@@ -119,6 +123,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     private void handlerPrepareClick() {
         ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
         mVideo.prepare(mZoomBmStream);
+        mVideo.prepareNext(new ZoomBmStream(getBitmap(), 0));
         mVideo.setDuration(3000);
         tvDuTime.setText(mVideo.getDuration() + " ");
         mSeekBar.setMax((int) mVideo.getDuration());
@@ -156,7 +161,8 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                File mFile = new File("/storage/emulated/0/DCIM/Camera/g.mp4");
+                mVideo.stop();
+                File mFile = new File("/storage/emulated/0/sintel.mp4");
 
                 MediaStream mMediaStream = null;
                 Bitmap mBitmap = getBitmap();
@@ -164,7 +170,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
                     mMediaStream = new ZoomBmStream(mBitmap , 0);
                 } else {
                     System.out.println("video======"+mFile.exists());
-                    mMediaStream = new VideoStream(mFile, VideoViewDome2.this);
+                    mMediaStream = new VideoStream(mFile, mVideo.getVideoScreenNail());
                 }
                 mVideo.prepare(mMediaStream);
                 mVideo.setDuration(3000);
@@ -180,17 +186,20 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                mVideo.seekTo(i);
+                if(isSeek){
+                    mVideo.seekTo(i);
+                }
+
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
+                isSeek = true;
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-
+                isSeek = false;
             }
         });
     }

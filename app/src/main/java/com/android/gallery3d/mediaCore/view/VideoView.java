@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.mediaCore.Utils.Annotation;
 import com.android.gallery3d.mediaCore.Utils.Utils;
+import com.android.gallery3d.mediaCore.Utils.VideoScreenNail;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.ui.GLView;
 
@@ -24,6 +25,16 @@ public class VideoView extends GLView implements VIPlayControl, PlayBits.OnNotif
     private PlayBits mPlayBits;
     private PlayStateListener mPlayStateListener;
 
+    private VideoScreenNail videoScreenNail;
+    private boolean first;
+
+    public void setVideoScreenNail(VideoScreenNail videoScreenNail) {
+        this.videoScreenNail = videoScreenNail;
+    }
+
+    public VideoScreenNail getVideoScreenNail() {
+        return videoScreenNail;
+    }
 
     public VideoView(Context context) {
         mContext = context;
@@ -48,12 +59,21 @@ public class VideoView extends GLView implements VIPlayControl, PlayBits.OnNotif
     @Override
     protected void render(GLCanvas canvas) {
         super.render(canvas);
+        if(videoScreenNail!=null&&!first){
+            videoScreenNail.draw(canvas,0,0,0,0);
+            first = true;
+        }
         mPlayBits.onDraw(canvas);
     }
 
     public void prepare(MediaStream mediaStream) {
         Utils.checkNull(mediaStream, "VideoVIew prepare NULL");
         mPlayBits.prepare(mediaStream);
+    }
+
+    public void prepareNext(MediaStream mediaStream){
+        Utils.checkNull(mediaStream, "VideoVIew prepare NULL");
+        mPlayBits.prepareNext(mediaStream);
     }
 
     @Override
