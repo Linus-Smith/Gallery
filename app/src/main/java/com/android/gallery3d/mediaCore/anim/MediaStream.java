@@ -3,8 +3,9 @@ package com.android.gallery3d.mediaCore.anim;
 
 import com.android.gallery3d.common.Utils;
 import com.android.gallery3d.glrenderer.GLCanvas;
-import com.android.gallery3d.mediaCore.view.StateIs;
-import com.android.gallery3d.mediaCore.view.VIPlayControl;
+import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
+import com.android.gallery3d.mediaCore.view.Inte.StateIs;
+import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
 
 /**
  * Created by linusyang on 16-12-9.
@@ -21,6 +22,8 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
 
     protected int mWidth;
     protected int mHeight;
+
+    protected float mAnimProgress;
 
 
 
@@ -41,9 +44,9 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
         this.mHeight = height;
     }
 
+
     @Override
     public void prepare() {
-
     }
 
     @Override
@@ -110,7 +113,12 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
     /**
      * @param canvas GLCanvas gives a convenient interface to draw using OpenGL.
      */
-    public abstract void apply(GLCanvas canvas);
+    public void apply(GLCanvas canvas){
+        onDraw(canvas);
+    }
+
+
+    public abstract void onDraw(GLCanvas canvas) ;
 
 
     public boolean calculate(long currentTimeMillis) {
@@ -129,6 +137,8 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
         return System.currentTimeMillis();
     }
 
-    protected abstract void onCalculate(float progress);
+    protected void onCalculate(float progress) {
+        mAnimProgress = progress;
+    }
 
 }

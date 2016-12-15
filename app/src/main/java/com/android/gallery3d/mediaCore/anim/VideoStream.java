@@ -32,10 +32,9 @@ public class VideoStream extends MediaStream {
     }
 
     @Override
-    public void apply(GLCanvas canvas) {
+    public void onDraw(GLCanvas canvas) {
         mVideoScreenNail.draw(canvas, 0, 0, mWidth, mHeight );
     }
-
 
 
     @Override

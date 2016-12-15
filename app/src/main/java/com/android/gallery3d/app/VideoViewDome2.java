@@ -12,10 +12,11 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.android.gallery3d.R;
-import com.android.gallery3d.mediaCore.Utils.VideoScreenNail;
+import com.android.gallery3d.mediaCore.anim.AlphaComboStream;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.mediaCore.anim.VideoStream;
 import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
+import com.android.gallery3d.mediaCore.view.Inte.StateIs;
 import com.android.gallery3d.mediaCore.view.VideoView;
 import com.android.gallery3d.ui.GLRootView;
 
@@ -75,8 +76,6 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         btPause.setOnClickListener(this);
         btStop.setOnClickListener(this);
         btPlayState.setOnClickListener(this);
-        VideoScreenNail videoScreenNail = new VideoScreenNail();
-        mVideo.setVideoScreenNail(videoScreenNail);
         mView.setContentPane(mVideo);
         mVideo.setPlayStateListener(this);
     }
@@ -123,7 +122,6 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     private void handlerPrepareClick() {
         ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
         mVideo.prepare(mZoomBmStream);
-        mVideo.prepareNext(new ZoomBmStream(getBitmap(), 0));
         mVideo.setDuration(3000);
         tvDuTime.setText(mVideo.getDuration() + " ");
         mSeekBar.setMax((int) mVideo.getDuration());
@@ -161,19 +159,22 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mVideo.stop();
-                File mFile = new File("/storage/emulated/0/sintel.mp4");
+                File mFile = new File("/storage/emulated/0/DCIM/Camera/g.mp4");
 
                 MediaStream mMediaStream = null;
                 Bitmap mBitmap = getBitmap();
                 if(mBitmap != null) {
-                    mMediaStream = new ZoomBmStream(mBitmap , 0);
+                 AlphaComboStream  alphaComboStream = new AlphaComboStream(new ZoomBmStream(mBitmap , 0));
+                    alphaComboStream.setTransitionAnimDuration(1000);
+                  //  alphaComboStream.setTransitionPlayMode(StateIs.TRANSITION_PLAY_MODE_ISOLATE);
+                    mMediaStream = alphaComboStream;
                 } else {
-                    System.out.println("video======"+mFile.exists());
-                    mMediaStream = new VideoStream(mFile, mVideo.getVideoScreenNail());
+                    AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail())) );
+                    alphaComboStrea.setTransitionAnimDuration(1000);
+                    mMediaStream = alphaComboStrea;
                 }
                 mVideo.prepare(mMediaStream);
-                mVideo.setDuration(3000);
+                mVideo.setDuration(4000);
                 tvDuTime.setText(mVideo.getDuration() + " ");
                 mSeekBar.setMax((int) mVideo.getDuration());
                 mSeekBar.setProgress(0);

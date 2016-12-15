@@ -1,26 +1,22 @@
 package com.android.gallery3d.mediaCore.view;
 
-import android.os.SystemClock;
-
 import com.android.gallery3d.glrenderer.GLCanvas;
-import com.android.gallery3d.mediaCore.anim.BitmapStream;
+import com.android.gallery3d.mediaCore.anim.ComboStream;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
+import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
+import com.android.gallery3d.mediaCore.view.Inte.StateIs;
+import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
 
 /**
  * Created by linusyang on 16-12-8.
  */
 
-public class PlayBits implements VIPlayControl ,StateIs{
+public class PlayBits implements VIPlayControl,StateIs {
 
-    public interface OnNotifyChangeListener {
-        void doInvalidate();
-        void notifyCompletion();
-    }
 
     protected int mWidth;
     protected int mHeight;
     private MediaStream mCurrentMediaStream;
-    private MediaStream mNextMediaStream;
 
     private OnNotifyChangeListener mOnNotifyChangeListener;
 
@@ -42,39 +38,24 @@ public class PlayBits implements VIPlayControl ,StateIs{
             canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
             mCurrentMediaStream.apply(canvas);
             canvas.restore();
-            if(mCurrentMediaStream.isCompletion()) {
-                mCurrentMediaStream.stop();
-                mOnNotifyChangeListener.notifyCompletion();
-            }
+            if(mCurrentMediaStream.isCompletion()) playCompletion();
         }
-
         if (requestRender) mOnNotifyChangeListener.doInvalidate();
     }
 
 
     public void prepare(MediaStream mediaStream) {
-        if(mNextMediaStream!=null){
-            this.mCurrentMediaStream = mNextMediaStream;
-            mNextMediaStream = mediaStream;
-            mNextMediaStream.setResolution(mWidth, mHeight);
-        }else {
-            this.mCurrentMediaStream = mediaStream;
-            mCurrentMediaStream.setResolution(mWidth, mHeight);
+        if(mediaStream instanceof ComboStream) {
+            ((ComboStream) mediaStream).setPreStream(mCurrentMediaStream);
         }
-        mediaStream.prepare();
-        mOnNotifyChangeListener.doInvalidate();
-    }
-
-    public void prepareNext(MediaStream mediaStream) {
-        this.mNextMediaStream = mediaStream;
-        mNextMediaStream.setResolution(mWidth, mHeight);
-        mediaStream.prepare();
-        mOnNotifyChangeListener.doInvalidate();
+        this.mCurrentMediaStream = mediaStream;
+        mCurrentMediaStream.setResolution(mWidth, mHeight);
+        prepare();
     }
 
     @Override
     public void prepare() {
-        mCurrentMediaStream.pause();
+        mCurrentMediaStream.prepare();
         mOnNotifyChangeListener.doInvalidate();
     }
 
@@ -125,6 +106,11 @@ public class PlayBits implements VIPlayControl ,StateIs{
     @Override
     public long getDuration() {
         return mCurrentMediaStream.getDuration();
+    }
+
+    protected void playCompletion() {
+        stop();
+        mOnNotifyChangeListener.notifyCompletion();
     }
 
 }

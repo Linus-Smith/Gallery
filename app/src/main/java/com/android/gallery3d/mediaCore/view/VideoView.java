@@ -8,13 +8,16 @@ import com.android.gallery3d.mediaCore.Utils.Annotation;
 import com.android.gallery3d.mediaCore.Utils.Utils;
 import com.android.gallery3d.mediaCore.Utils.VideoScreenNail;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
+import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
+import com.android.gallery3d.mediaCore.view.Inte.StateIs;
+import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
 import com.android.gallery3d.ui.GLView;
 
 /**
  * Created by linusyang on 16-12-1.
  */
 
-public class VideoView extends GLView implements VIPlayControl, PlayBits.OnNotifyChangeListener , StateIs{
+public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeListener, StateIs {
 
     public interface PlayStateListener {
         void onCompletion();

@@ -15,7 +15,7 @@ public class ZoomBmStream extends BitmapStream {
 
     private static final float SCALE_SPEED = 0.20f;
     private static final float MOVE_SPEED = SCALE_SPEED;
-    protected float mProgress;
+
     private final PointF mMovingVector;
     private Random mRandom = new Random();
 
@@ -27,16 +27,16 @@ public class ZoomBmStream extends BitmapStream {
     }
 
     @Override
-    public void apply(GLCanvas canvas) {
+    public void onDraw(GLCanvas canvas) {
         int viewWidth = bitmapWidth;
         int viewHeight = bitmapHeight;
 
         float initScale = Math.min((float)
                 viewWidth / bitmapWidth, (float) viewHeight / bitmapHeight);
-        float scale = initScale * (1 + SCALE_SPEED * mProgress);
+        float scale = initScale * (1 + SCALE_SPEED * mAnimProgress);
 
-        float centerX = viewWidth / 2 + mMovingVector.x * mProgress;
-        float centerY = viewHeight / 2 + mMovingVector.y * mProgress;
+        float centerX = viewWidth / 2 + mMovingVector.x * mAnimProgress;
+        float centerY = viewHeight / 2 + mMovingVector.y * mAnimProgress;
         canvas.translate(centerX, centerY);
         canvas.scale(scale, scale, 0);
         canvas.rotate(mRotation, 0, 0, 1);
@@ -44,8 +44,4 @@ public class ZoomBmStream extends BitmapStream {
                 -mCurrentTexture.getHeight() / 2);
     }
 
-    @Override
-    protected void onCalculate(float progress) {
-        mProgress = progress;
-    }
 }
