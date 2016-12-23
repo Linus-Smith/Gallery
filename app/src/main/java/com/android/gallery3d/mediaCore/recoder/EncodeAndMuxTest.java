@@ -19,6 +19,8 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
@@ -100,30 +102,11 @@ public class EncodeAndMuxTest  {
     private MediaMuxer mMuxer;
     private int mTrackIndex;
     private boolean mMuxerStarted;
-    private GLCanvas canvas;
     BitmapTexture mCurrentTexture;
-    public EncodeAndMuxTest(Context mContext, GLCanvas mcanvas) {
+    public EncodeAndMuxTest(Context mContext) {
         this.mContext = mContext;
-        canvas = mcanvas;
-        acquireSurfaceTexture(mcanvas);
-    }
-    private ExtTexture mExtTexture;
-    private SurfaceTexture mSurfaceTexture;
-    public void acquireSurfaceTexture(GLCanvas canvas) {
-        mExtTexture = new ExtTexture(canvas, GL_TEXTURE_EXTERNAL_OES);
-        mExtTexture.setSize(mWidth, mHeight);
-        mSurfaceTexture = new SurfaceTexture(mExtTexture.getId());
-        setDefaultBufferSize(mSurfaceTexture, mWidth, mHeight);
-//            mSurfaceTexture.setOnFrameAvailableListener(this);
     }
 
-
-    @TargetApi(ApiHelper.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
-    private static void setDefaultBufferSize(SurfaceTexture st, int width, int height) {
-        if (ApiHelper.HAS_SET_DEFALT_BUFFER_SIZE) {
-            st.setDefaultBufferSize(width, height);
-        }
-    }
     private Context mContext;
 
     // allocate one of these up front so we don't need to do it every time
@@ -157,15 +140,16 @@ public class EncodeAndMuxTest  {
             mInputSurface.makeCurrent();
 //            outputSurface = new OutputSurface();
 //            outputSurface.changeFragmentShader(FRAGMENT_SHADER);
-//            GLCanvas canvas = new GLES11Canvas(outputSurface.getGL());
-//            GLCanvas canvas = new GLES20Canvas();
+//
+//            Rect rect = new Rect(0,0,800,600);
+//            Canvas canvas = outputSurface.getSurface().lockCanvas(rect);
             for (int i = 0; i < NUM_FRAMES; i++) {
                 // Feed any pending encoder output into the muxer.
                 drainEncoder(false);
                 Log.i("jzf","i"+i);
                 // Generate a new frame of input.
-//                generateSurfaceFrame(i);
-                draw(canvas,i);
+                generateSurfaceFrame(i);
+//                draw(canvas,i);
                 mInputSurface.setPresentationTime(computePresentationTimeNsec(i));
 
                 // Submit it to the encoder.  The eglSwapBuffers call will block if the input
@@ -228,11 +212,8 @@ boolean isEncodeDone = false;
         // "display" EGL context is created, then modify the eglCreateContext call to
         // take eglGetCurrentContext() as the share_context argument.
         mEncoder = MediaCodec.createEncoderByType(MIME_TYPE);
-        Surface surface = new Surface(mSurfaceTexture);
-        mEncoder.configure(format, surface, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        mInputSurface = new CodecInputSurface(surface);
-//        mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-//        mInputSurface = new CodecInputSurface(mEncoder.createInputSurface());
+        mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        mInputSurface = new CodecInputSurface(mEncoder.createInputSurface());
 
         mEncoder.start();
 
@@ -409,13 +390,15 @@ boolean isEncodeDone = false;
         GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
     }
 
-    private void draw(GLCanvas canvas, int frameIndex){
-        canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
+    private void draw(Canvas canvas, int frameIndex){
+        canvas.save();
 
-        mCurrentTexture = new BitmapTexture(getBitmap());
-//        canvas.setTextureParameters(mCurrentTexture);
-        mCurrentTexture.draw(canvas, 0,
-                0);
+//        mCurrentTexture = new BitmapTexture(getBitmap());
+////        canvas.setTextureParameters(mCurrentTexture);
+//        mCurrentTexture.draw(canvas, 0,
+//                0);
+        canvas.drawBitmap(getBitmap(),0,0,null);
+        Log.i("jzf","draw");
         canvas.restore();
 
     }

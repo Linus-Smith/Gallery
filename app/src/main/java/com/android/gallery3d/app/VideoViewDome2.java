@@ -86,8 +86,8 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         btStop.setOnClickListener(this);
         btPlayState.setOnClickListener(this);
         mView.setContentPane(mVideo);
-        recoderView = new RecoderView();
-        mView.setContentPane(recoderView);
+//        recoderView = new RecoderView();
+//        mView.setContentPane(recoderView);
         mVideo.setPlayStateListener(this);
 //        mRender.setPlayStateListener(this);
         findViewById(R.id.recoder).setOnClickListener(this);
@@ -119,7 +119,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.bt_prepare:
-                handlerPrepareVedio();
+                handlerPrepareClick();
                 break;
             case R.id.bt_start:
                 handlerStartClick();
@@ -167,7 +167,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
             @Override
             public void run() {
                 super.run();
-                EncodeAndMuxTest test = new EncodeAndMuxTest(VideoViewDome2.this,recoderView.getmCanvas());
+                EncodeAndMuxTest test = new EncodeAndMuxTest(VideoViewDome2.this);
                 test.testEncodeVideoToMp4();
             }
         }.start();
