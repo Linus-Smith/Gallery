@@ -1,9 +1,7 @@
 package com.android.gallery3d.mediaCore.anim;
 
 import android.app.Activity;
-import android.view.animation.Interpolator;
 
-import com.android.gallery3d.common.Utils;
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.mediaCore.Utils.VideoScreenNail;
 

@@ -128,8 +128,9 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
 
     @Override
     public void prepare() {
+
         play(mFile);
-        pause();
+//        pause();
     }
 
     @Override
@@ -138,12 +139,14 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
 //        if (mPlayTask != null) {
 //            mPlayTask.execute();
 //        }
-        pause();
+//        pause();
     }
 
     @Override
     public void restart() {
-
+        if (mPlayTask != null) {
+            mPlayTask.restart();
+        }
     }
 
     @Override
@@ -157,6 +160,7 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
     public void stop() {
         if (mPlayTask != null) {
             mPlayTask.requestStop();
+            mPlayTask.waitForStop();
         }
     }
 

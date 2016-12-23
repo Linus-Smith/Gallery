@@ -20,6 +20,7 @@ import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
@@ -55,6 +56,7 @@ public class MoviePlayer {
     private int mVideoWidth;
     private int mVideoHeight;
     boolean isSeek = false;
+    boolean restart = false;
     long seekTime = 0L;
     private final Object mPauseLock = new Object();
 
@@ -116,6 +118,7 @@ public class MoviePlayer {
      */
     public MoviePlayer(File sourceFile, Surface outputSurface, FrameCallback frameCallback, UpdatePlayTimeCallback updatePlayTimeCallback)
             throws IOException {
+        Log.i("jzf",sourceFile.getAbsolutePath());
         mSourceFile = sourceFile;
         mOutputSurface = outputSurface;
         mFrameCallback = frameCallback;
@@ -184,6 +187,11 @@ public class MoviePlayer {
         if(!mIsPauseRequested){
             notifyPause();
         }
+    }
+
+
+    public void restart(){
+        restart = true;
     }
     /**
      * Decodes the video stream, sending frames to the surface.
@@ -357,6 +365,13 @@ public class MoviePlayer {
                 Log.d(TAG, "Stop requested");
                 return;
             }
+            if(restart){
+                extractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
+                inputDone = false;
+                decoder.flush();    // reset decoder state
+                frameCallback.loopReset();
+                restart = false;
+            }
             if(isSeek){
                 decoder.flush();
                 extractor.seekTo(seekTime, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
@@ -476,7 +491,10 @@ public class MoviePlayer {
                             frameCallback.postRender();
                         }
                         if(doRender && updatePlayTimeCallback!=null){
-                            updatePlayTimeCallback.updateCurrentPlayTime(mBufferInfo.presentationTimeUs/1000);
+                            if(mBufferInfo.presentationTimeUs!=0){
+                                updatePlayTimeCallback.updateCurrentPlayTime(mBufferInfo.presentationTimeUs/1000);
+                            }
+
                         }
                         Log.d(TAG, " mBufferInfo. 2presentationTimeUs = "+mBufferInfo.presentationTimeUs);
                     }
@@ -496,6 +514,7 @@ public class MoviePlayer {
     private void seekToTime(long timeUs){
         seekTime = timeUs;
         isSeek = true;
+
         Log.i(TAG,"seek timeUs"+timeUs);
     }
 
@@ -608,6 +627,11 @@ public class MoviePlayer {
                 e.printStackTrace();
             }
         }
+
+        public void restart(){
+            mPlayer.restart();
+        }
+
 
         @Override
         public void run() {

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
@@ -12,11 +13,15 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.android.gallery3d.R;
+import com.android.gallery3d.mediaCore.Utils.MediaCodecRecoder;
 import com.android.gallery3d.mediaCore.anim.AlphaComboStream;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.mediaCore.anim.VideoStream;
 import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
+import com.android.gallery3d.mediaCore.recoder.EncodeAndMuxTest;
+import com.android.gallery3d.mediaCore.recoder.RecoderRender;
 import com.android.gallery3d.mediaCore.view.Inte.StateIs;
+import com.android.gallery3d.mediaCore.view.RecoderView;
 import com.android.gallery3d.mediaCore.view.VideoView;
 import com.android.gallery3d.ui.GLRootView;
 
@@ -30,6 +35,8 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
 
     private GLRootView mView;
     private VideoView mVideo;
+    private RecoderRender mRender;
+    private RecoderView recoderView;
     private int bitmapIndex = 1;
     private Button btPrepare;
     private Button btStart;
@@ -59,6 +66,8 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         setContentView(R.layout.activity_video_dome);
         mView = (GLRootView) findViewById(R.id.gl_root);
         mVideo = new VideoView(this);
+//        mRender = new RecoderRender();
+
         btPrepare = (Button) findViewById(R.id.bt_prepare);
         btStart = (Button) findViewById(R.id.bt_start);
         btRestartr = (Button) findViewById(R.id.bt_restart);
@@ -77,7 +86,11 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         btStop.setOnClickListener(this);
         btPlayState.setOnClickListener(this);
         mView.setContentPane(mVideo);
+        recoderView = new RecoderView();
+        mView.setContentPane(recoderView);
         mVideo.setPlayStateListener(this);
+//        mRender.setPlayStateListener(this);
+        findViewById(R.id.recoder).setOnClickListener(this);
     }
 
     private Bitmap getBitmap() {
@@ -94,11 +107,19 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         return mBitmap;
     }
 
+    private File getFile(boolean isFirst){
+        if(isFirst){
+            return new File("/storage/emulated/0/1.mp4");
+        }else {
+            return new File("/storage/emulated/0/sintel.mp4");
+        }
+
+    }
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.bt_prepare:
-                handlerPrepareClick();
+                handlerPrepareVedio();
                 break;
             case R.id.bt_start:
                 handlerStartClick();
@@ -115,7 +136,50 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
             case R.id.bt_play_state:
                 handlerPlayStateClick();
                 break;
+            case R.id.recoder:
+                recode2();
+                break;
         }
+    }
+
+    private void recode() {
+        new Thread(){
+            @Override
+            public void run() {
+                String path2 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/sintel.mp4";
+                MediaCodecRecoder recoder = new MediaCodecRecoder();
+                MediaCodecRecoder.SaveTask task = new MediaCodecRecoder.SaveTask(recoder);
+                try {
+                    recoder.saveVideo(new File(path2));
+                    task.execute();
+
+                } catch (Throwable throwable) {
+                    throwable.printStackTrace();
+                }
+            }
+        }.start();
+
+    }
+
+    private void recode2(){
+
+        new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                EncodeAndMuxTest test = new EncodeAndMuxTest(VideoViewDome2.this,recoderView.getmCanvas());
+                test.testEncodeVideoToMp4();
+            }
+        }.start();
+
+    }
+
+    private void recodeList(){
+        ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
+        mRender.startEncoder();
+        mRender.prepare(mZoomBmStream);
+        mRender.setDuration(3000);
+        mRender.start();
     }
 
 
@@ -128,6 +192,22 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         mSeekBar.setProgress(0);
 
     }
+
+    private void handlerPrepareVedio() {
+        File mFile = new File("/storage/emulated/0/1.mp4");
+
+        MediaStream mMediaStream = null;
+        AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail()) );
+        alphaComboStrea.setTransitionAnimDuration(1000);
+        mMediaStream = alphaComboStrea;
+        mVideo.prepare(mMediaStream);
+        mVideo.setDuration(3000);
+        tvDuTime.setText(mVideo.getDuration() + " ");
+        mSeekBar.setMax((int) mVideo.getDuration());
+        mSeekBar.setProgress(0);
+
+    }
+
 
     private void handlerStartClick() {
         mVideo.start();
@@ -153,17 +233,19 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         int playState = mVideo.getPlayState();
     }
 
-
+    boolean isfirst;
     @Override
     public void onCompletion() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mVideo.stop();
-                File mFile = new File("/storage/emulated/0/sintel.mp4");
+                Log.i("jzf","oncall");
+//                mVideo.stop();
+                isfirst=!isfirst;
+                File mFile = getFile(isfirst);
 
                 MediaStream mMediaStream = null;
-                Bitmap mBitmap = getBitmap();
+                Bitmap mBitmap = null;
                 if(mBitmap != null) {
                  AlphaComboStream  alphaComboStream = new AlphaComboStream(new ZoomBmStream(mBitmap , 0));
                     alphaComboStream.setTransitionAnimDuration(1000);
