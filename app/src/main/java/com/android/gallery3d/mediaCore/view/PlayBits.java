@@ -83,6 +83,19 @@ public class PlayBits implements VIPlayControl,StateIs {
         mOnNotifyChangeListener.doInvalidate();
     }
 
+    public void startRecord(long beginTime){
+        mCurrentMediaStream.setBeginTime(beginTime);
+        mCurrentMediaStream.start();
+    }
+
+    public void record(GLCanvas canvas,long timeStamp){
+        if (mCurrentMediaStream != null) {
+             mCurrentMediaStream.reord(timeStamp);
+            canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
+            mCurrentMediaStream.apply(canvas);
+            canvas.restore();
+        }
+    }
     @Override
     public void seekTo(long durationT) {
         mCurrentMediaStream.seekTo(durationT);

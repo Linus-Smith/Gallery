@@ -3,7 +3,6 @@ package com.android.gallery3d.mediaCore.anim;
 
 import com.android.gallery3d.common.Utils;
 import com.android.gallery3d.glrenderer.GLCanvas;
-import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
 import com.android.gallery3d.mediaCore.view.Inte.StateIs;
 import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
 
@@ -15,6 +14,7 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
 
     protected static final long NO_ANIMATION = -2;
     protected long mStartTime = NO_ANIMATION;
+    protected long mBeginTime = NO_ANIMATION;
     protected int  mPlayState = PLAY_STATE_STOP;
 
     protected long mDuration;
@@ -44,6 +44,9 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
         this.mHeight = height;
     }
 
+    public void setBeginTime(long beginTime){
+        mBeginTime = beginTime;
+    }
 
     @Override
     public void prepare() {
@@ -117,6 +120,13 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
         onDraw(canvas);
     }
 
+    public void reord(long timeStamp){
+        long elapse =  timeStamp - mBeginTime;
+        long duration = mDuration*1000000;
+        mCurrentDurationTime = elapse > duration ? mDuration : elapse/1000000;
+        float x = Utils.clamp((float) elapse / duration, 0f, 1f);
+        onCalculate(x);
+    }
 
     public abstract void onDraw(GLCanvas canvas) ;
 

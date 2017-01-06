@@ -2,6 +2,7 @@ package com.android.gallery3d.mediaCore.anim;
 
 import android.graphics.Bitmap;
 import android.graphics.PointF;
+import android.util.Log;
 
 import com.android.gallery3d.glrenderer.GLCanvas;
 
@@ -28,6 +29,7 @@ public class ZoomBmStream extends BitmapStream {
 
     @Override
     public void onDraw(GLCanvas canvas) {
+        Log.i("jzf","canvas draw"+mAnimProgress);
         int viewWidth = bitmapWidth;
         int viewHeight = bitmapHeight;
 

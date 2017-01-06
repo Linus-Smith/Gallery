@@ -14,18 +14,20 @@ import android.widget.TextView;
 
 import com.android.gallery3d.R;
 import com.android.gallery3d.mediaCore.Utils.MediaCodecRecoder;
+import com.android.gallery3d.mediaCore.Utils.MediaCodecRecoderMuti;
 import com.android.gallery3d.mediaCore.anim.AlphaComboStream;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.mediaCore.anim.VideoStream;
 import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
 import com.android.gallery3d.mediaCore.recoder.EncodeAndMuxTest;
 import com.android.gallery3d.mediaCore.recoder.RecoderRender;
-import com.android.gallery3d.mediaCore.view.Inte.StateIs;
-import com.android.gallery3d.mediaCore.view.RecoderView;
+import com.android.gallery3d.mediaCore.recoder.TestGLCanvas;
 import com.android.gallery3d.mediaCore.view.VideoView;
 import com.android.gallery3d.ui.GLRootView;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Created by linusyang on 16-12-1.
@@ -36,7 +38,6 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     private GLRootView mView;
     private VideoView mVideo;
     private RecoderRender mRender;
-    private RecoderView recoderView;
     private int bitmapIndex = 1;
     private Button btPrepare;
     private Button btStart;
@@ -66,7 +67,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         setContentView(R.layout.activity_video_dome);
         mView = (GLRootView) findViewById(R.id.gl_root);
         mVideo = new VideoView(this);
-//        mRender = new RecoderRender();
+        mRender = new RecoderRender(this);
 
         btPrepare = (Button) findViewById(R.id.bt_prepare);
         btStart = (Button) findViewById(R.id.bt_start);
@@ -86,10 +87,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         btStop.setOnClickListener(this);
         btPlayState.setOnClickListener(this);
         mView.setContentPane(mVideo);
-//        recoderView = new RecoderView();
-//        mView.setContentPane(recoderView);
         mVideo.setPlayStateListener(this);
-//        mRender.setPlayStateListener(this);
         findViewById(R.id.recoder).setOnClickListener(this);
     }
 
@@ -137,7 +135,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
                 handlerPlayStateClick();
                 break;
             case R.id.recoder:
-                recode2();
+                recodeList();
                 break;
         }
     }
@@ -162,24 +160,40 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     }
 
     private void recode2(){
+        new Thread() {
+            public void run() {
+                String path1 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/1.mp4";
+                String path2 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/sintel.mp4";
+                MediaCodecRecoderMuti recoder = new MediaCodecRecoderMuti(VideoViewDome2.this);
 
+
+                MediaCodecRecoderMuti.SaveTask task = new MediaCodecRecoderMuti.SaveTask(recoder);
+                try {
+                    ArrayList<File> files = new ArrayList<File>();
+                    files.add(new File(path1));
+                    files.add(new File(path2));
+                    recoder.saveVedios(files);
+                    task.execute();
+
+                } catch (Throwable throwable) {
+                    throwable.printStackTrace();
+                }
+            }
+        }.start();
+    }
+    private void recode3(){
+        TestGLCanvas test = new TestGLCanvas(VideoViewDome2.this);
+        test.testEncodeVideoToMp4();
+    }
+    private void recodeList(){
         new Thread(){
             @Override
             public void run() {
                 super.run();
-                EncodeAndMuxTest test = new EncodeAndMuxTest(VideoViewDome2.this);
-                test.testEncodeVideoToMp4();
+                mRender.startEncoder();
             }
         }.start();
 
-    }
-
-    private void recodeList(){
-        ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
-        mRender.startEncoder();
-        mRender.prepare(mZoomBmStream);
-        mRender.setDuration(3000);
-        mRender.start();
     }
 
 

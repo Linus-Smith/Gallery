@@ -18,7 +18,6 @@ package com.android.gallery3d.mediaCore.recoder;/*
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
@@ -37,7 +36,9 @@ import android.view.Surface;
 import com.android.gallery3d.glrenderer.BitmapTexture;
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.glrenderer.GLES20Canvas;
-import com.android.gallery3d.glrenderer.GLPaint;
+import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
+import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
+import com.android.gallery3d.mediaCore.view.PlayBits;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,8 +57,8 @@ import java.nio.ByteBuffer;
  * (This was derived from bits and pieces of CTS tests, and is packaged as such, but is not
  * currently part of CTS.)
  */
-public class EncodeAndMuxTest  {
-    private static final String TAG = "EncodeAndMuxTest";
+public class TestGLCanvas implements OnNotifyChangeListener {
+    private static final String TAG = "TestGLCanvas";
     private static final boolean VERBOSE = true;           // lots of logging
 
     // where to put the output file (note: /sdcard requires WRITE_EXTERNAL_STORAGE permission)
@@ -91,7 +92,11 @@ public class EncodeAndMuxTest  {
     private int mTrackIndex;
     private boolean mMuxerStarted;
     BitmapTexture mCurrentTexture;
-    public EncodeAndMuxTest(Context mContext) {
+
+    private PlayBits mPlayBits;
+    public TestGLCanvas(Context mContext) {
+        mPlayBits = new PlayBits();
+        mPlayBits.setOnNotifyChangeListener(this);
         this.mContext = mContext;
     }
 
@@ -117,42 +122,36 @@ public class EncodeAndMuxTest  {
     /**
      * Tests encoding of AVC video from a Surface.  The output is saved as an MP4 file.
      */
+    long beginTime;
+    GLCanvas canvas;
     public void testEncodeVideoToMp4() {
         // QVGA at 2Mbps
-        mWidth = 320;
-        mHeight = 240;
+        mWidth = 1280;
+        mHeight = 720;
         mBitRate = 2000000;
 
         try {
+            mPlayBits.setResolution(mWidth, mHeight);
             prepareEncoder();
+
             mInputSurface.makeCurrent();
+
+            canvas = new GLES20Canvas();
+            canvas.setSize(mWidth,mHeight);
+
+            ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
+            mPlayBits.prepare(mZoomBmStream);
+            mPlayBits.setDuration(3000);
 //            outputSurface = new OutputSurface();
 //            outputSurface.changeFragmentShader(FRAGMENT_SHADER);
 
-            GLCanvas canvas = new GLES20Canvas();
-            canvas.setSize(mWidth,mHeight);
+            mPlayBits.startRecord(0);
 
-            for (int i = 0; i < NUM_FRAMES; i++) {
-                // Feed any pending encoder output into the muxer.
-                drainEncoder(false);
-                Log.i("jzf","i"+i);
-                // Generate a new frame of input.
-//                generateSurfaceFrame(i);
-                draw(canvas,i);
-                final long ONE_BILLION = 1000000000;
-                mInputSurface.setPresentationTime(computePresentationTimeNsec(i)+ONE_BILLION*i);
 
-                // Submit it to the encoder.  The eglSwapBuffers call will block if the input
-                // is full, which would be bad if it stayed full until we dequeued an output
-                // buffer (which we can't do, since we're stuck here).  So long as we fully drain
-                // the encoder before supplying additional input, the system guarantees that we
-                // can supply another frame without blocking.
-                if (VERBOSE) Log.d(TAG, "sending frame " + i + " to encoder");
-                mInputSurface.swapBuffers();
-            }
+
             // send end-of-stream to encoder, and drain remaining output
 
-            drainEncoder(true);
+
 //            awaitEncode();
         } catch (IOException e) {
             e.printStackTrace();
@@ -177,6 +176,33 @@ boolean isEncodeDone = false;
         }
     }
 
+    private void doFrame(GLCanvas canvas,long timeStampNanos){
+
+        // Feed any pending encoder output into the muxer.
+        drainEncoder(false);
+        // Generate a new frame of input.
+//                generateSurfaceFrame(i);
+//                draw(canvas,i);
+        mInputSurface.makeCurrent();
+        record(canvas,timeStampNanos);
+        mInputSurface.setPresentationTime(timeStampNanos);
+
+        // Submit it to the encoder.  The eglSwapBuffers call will block if the input
+        // is full, which would be bad if it stayed full until we dequeued an output
+        // buffer (which we can't do, since we're stuck here).  So long as we fully drain
+        // the encoder before supplying additional input, the system guarantees that we
+        // can supply another frame without blocking.
+        mInputSurface.swapBuffers();
+    }
+
+
+    int drawCOunt = 0;
+    private void record(GLCanvas canvas,long timeStamp){
+
+        mPlayBits.record(canvas,timeStamp);
+        drawCOunt++;
+
+    }
     /**
      * Configures encoder and muxer state, and prepares the input Surface.
      */
@@ -203,10 +229,10 @@ boolean isEncodeDone = false;
         // take eglGetCurrentContext() as the share_context argument.
         mEncoder = MediaCodec.createEncoderByType(MIME_TYPE);
         mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        mInputSurface = new InputSurface(mEncoder.createInputSurface());
-
+//        mInputSurface = new InputSurface(mEncoder.createInputSurface());
+        Surface surface = mEncoder.createInputSurface();
         mEncoder.start();
-
+        mInputSurface = new InputSurface(surface);
         // Output filename.  Ideally this would use Context.getFilesDir() rather than a
         // hard-coded output directory.
         String outputPath = new File(OUTPUT_DIR,
@@ -275,7 +301,7 @@ boolean isEncodeDone = false;
         ByteBuffer[] encoderOutputBuffers = mEncoder.getOutputBuffers();
         while (true) {
             int encoderStatus = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
-            if (VERBOSE) Log.d(TAG, "encoderStatus(" + encoderStatus + ")");
+            if (VERBOSE) Log.d(TAG, "encoderStatus ="+encoderStatus);
             if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                 // no output available yet
                 if (!endOfStream) {
@@ -420,6 +446,37 @@ boolean isEncodeDone = false;
     private static long computePresentationTimeNsec(int frameIndex) {
         final long ONE_BILLION = 1000000000;
         return frameIndex * ONE_BILLION / FRAME_RATE;
+    }
+
+    int i = 0;
+    @Override
+    public void doInvalidate() {
+
+
+        final long ONE_BILLION = 1000000000;
+        beginTime =ONE_BILLION / FRAME_RATE*i++;
+        Log.i("jzf","beginTime"+beginTime);
+        doFrame(canvas,beginTime);
+
+    }
+    int j = 0;
+    @Override
+    public void notifyCompletion() {
+        Log.i("jzf","on complete");
+
+    j++;
+        if(j>1){
+            drainEncoder(true);
+        }else {
+            ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
+            mPlayBits.prepare(mZoomBmStream);
+            mPlayBits.setDuration(3000);
+//            outputSurface = new OutputSurface();
+//            outputSurface.changeFragmentShader(FRAGMENT_SHADER);
+
+            mPlayBits.startRecord(3000000000L);
+        }
+
     }
 
 
