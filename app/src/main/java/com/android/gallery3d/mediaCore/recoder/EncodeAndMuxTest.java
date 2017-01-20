@@ -38,6 +38,8 @@ import com.android.gallery3d.glrenderer.BitmapTexture;
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.glrenderer.GLES20Canvas;
 import com.android.gallery3d.glrenderer.GLPaint;
+import com.android.gallery3d.mediaCore.recorder.InputSurface;
+import com.android.gallery3d.mediaCore.recorder.OutputSurface;
 
 import java.io.File;
 import java.io.IOException;

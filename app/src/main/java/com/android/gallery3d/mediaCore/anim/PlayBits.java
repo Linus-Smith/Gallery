@@ -1,18 +1,14 @@
-package com.android.gallery3d.mediaCore.view;
+package com.android.gallery3d.mediaCore.anim;
 
 import com.android.gallery3d.glrenderer.GLCanvas;
-import com.android.gallery3d.mediaCore.anim.ComboStream;
-import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
-import com.android.gallery3d.mediaCore.view.Inte.StateIs;
-import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
+import com.android.gallery3d.mediaCore.view.Inte.StatusIs;
 
 /**
  * Created by linusyang on 16-12-8.
  */
 
-public class PlayBits implements VIPlayControl,StateIs {
-
+public class PlayBits extends BaseBits {
 
     protected int mWidth;
     protected int mHeight;
@@ -32,24 +28,37 @@ public class PlayBits implements VIPlayControl,StateIs {
     }
 
     public  void onDraw(GLCanvas canvas) {
-        boolean requestRender = false;
         if (mCurrentMediaStream != null) {
-            requestRender |= mCurrentMediaStream.calculate(MediaStream.getCurrentTime());
             canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
             mCurrentMediaStream.apply(canvas);
             canvas.restore();
-            if(mCurrentMediaStream.isCompletion()) playCompletion();
         }
-        if (requestRender) mOnNotifyChangeListener.doInvalidate();
+
     }
 
 
-    public void prepare(MediaStream mediaStream) {
-        if(mediaStream instanceof ComboStream) {
-            ((ComboStream) mediaStream).setPreStream(mCurrentMediaStream);
+    public void prepare(ComboStream comboStream, long playDuration, long transitionDuration, int transitionMode) {
+        comboStream.setPreStream(mCurrentMediaStream);
+        comboStream.setTransitionPlayMode(transitionMode);
+        comboStream.setDuration(transitionDuration);
+        long tempDuration;
+        if(transitionDuration == StatusIs.TRANSITION_PLAY_MODE_ISOLATE) {
+            tempDuration = playDuration - transitionDuration;
+        } else {
+            tempDuration = playDuration;
         }
+        mCurrentMediaStream = comboStream;
+        mCurrentMediaStream.setResolution(mWidth, mHeight);
+        comboStream.setTotalDuration(tempDuration);
+        mCurrentMediaStream.getCurrentStream().setDuration(playDuration);
+        prepare();
+    }
+
+    public void prepare(MediaStream mediaStream, long playDuration) {
+        if(mediaStream instanceof  ComboStream) throw new RuntimeException("prepare error");
         this.mCurrentMediaStream = mediaStream;
         mCurrentMediaStream.setResolution(mWidth, mHeight);
+        mCurrentMediaStream.setDuration(playDuration);
         prepare();
     }
 
@@ -84,13 +93,12 @@ public class PlayBits implements VIPlayControl,StateIs {
     }
 
     public void startRecord(long beginTime){
-        mCurrentMediaStream.setBeginTime(beginTime);
         mCurrentMediaStream.start();
     }
 
     public void record(GLCanvas canvas,long timeStamp){
         if (mCurrentMediaStream != null) {
-             mCurrentMediaStream.reord(timeStamp);
+
             canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
             mCurrentMediaStream.apply(canvas);
             canvas.restore();
@@ -99,6 +107,7 @@ public class PlayBits implements VIPlayControl,StateIs {
     @Override
     public void seekTo(long durationT) {
         mCurrentMediaStream.seekTo(durationT);
+        mOnNotifyChangeListener.doInvalidate();
     }
 
     @Override
@@ -111,9 +120,10 @@ public class PlayBits implements VIPlayControl,StateIs {
         return mCurrentMediaStream.getProgress();
     }
 
+    @Deprecated
     @Override
     public void setDuration(long duration) {
-        mCurrentMediaStream.setDuration(duration);
+        throw new RuntimeException("please call prepare");
     }
 
     @Override
@@ -121,9 +131,15 @@ public class PlayBits implements VIPlayControl,StateIs {
         return mCurrentMediaStream.getDuration();
     }
 
-    protected void playCompletion() {
-        stop();
-        mOnNotifyChangeListener.notifyCompletion();
+
+    public boolean calculate(long currentTimeMillis) {
+        if(mCurrentMediaStream == null) return false;
+        return mCurrentMediaStream.calculate(currentTimeMillis);
+    }
+
+    public boolean isCompletion() {
+        if(mCurrentMediaStream == null) return false;
+        return mCurrentMediaStream.isCompletion();
     }
 
 }

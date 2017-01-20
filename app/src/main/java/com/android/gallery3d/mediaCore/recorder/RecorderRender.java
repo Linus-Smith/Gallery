@@ -1,8 +1,7 @@
-package com.android.gallery3d.mediaCore.recoder;
+package com.android.gallery3d.mediaCore.recorder;
 
-import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
@@ -19,14 +18,9 @@ import android.view.Surface;
 
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.glrenderer.GLES20Canvas;
-import com.android.gallery3d.mediaCore.Utils.Utils;
-import com.android.gallery3d.mediaCore.anim.AlphaComboStream;
-import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.mediaCore.anim.PlayBits;
-import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
-import com.android.gallery3d.mediaCore.recorder.InputSurface;
-import com.android.gallery3d.mediaCore.recorder.OutputSurface;
 import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
+
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -34,229 +28,36 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by bruce.jiang on 2016/12/21.
  */
 
-public class RecoderRender implements OnNotifyChangeListener {
+public class RecorderRender implements OnNotifyChangeListener {
 
     private static final String TAG = "RecoderRender";
     private GLCanvas mCanvas;
 
-    private Context mContext;
     private PlayBits mPlayBits;
-    private int mWidth = 1280;
-    private int mHeight = 720;
+    private int mWidth = 1080;
+    private int mHeight = 608;
 
     private InputSurface inputSurface;
     private OutputSurface outputSurface;
-    private File mOutputFile;
 
     private static final boolean VERBOSE = true;
-    /**
-     * Used for editing the frames.
-     * <p>
-     * <p>Swaps green and blue channels by storing an RBGA color in an RGBA buffer.
-     */
-    private static final String FRAGMENT_SHADER =
-            "#extension GL_OES_EGL_image_external : require\n" +
-                    "precision mediump float;\n" +
-                    "varying vec2 vTextureCoord;\n" +
-                    "uniform samplerExternalOES sTexture;\n" +
-                    "void main() {\n" +
-                    "  gl_FragColor = texture2D(sTexture, vTextureCoord).rbga;\n" +
-                    "}\n";
+   // private List<StoryAlbumClip> mClips;
 
 
-    public RecoderRender(Context context) {
-        mPlayBits = new PlayBits();
-        mPlayBits.setOnNotifyChangeListener(this);
-        mContext = context;
-    }
-
-
-    public void setmOutputFile(File mOutputFile) {
-        this.mOutputFile = mOutputFile;
-    }
-
-
-    private void handlerPrepareClick(int duration,long beginTime) {
-     Log.i("jzf","image");
-        inputSurface.makeCurrent();
-        mCanvas = new GLES20Canvas();
-        mCanvas.setSize(mWidth, mHeight);
-        mPlayBits.setResolution(mWidth, mHeight);
-        ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
-        AlphaComboStream mStream = new AlphaComboStream(mZoomBmStream);
-        prepare(mStream);
-        playImage(duration, beginTime);
-//        ZoomBmStream mZoomBmStream1 = new ZoomBmStream(getBitmap(), 0);
-//        AlphaComboStream mStream1 = new AlphaComboStream(mZoomBmStream1);
-//        prepare(mStream1);
-//        playImage(3000, 7000000000L);
-//        drainEncoder(true);
-    }
-
-
-    private void playImage(int duration, long beginTime) {
-
-        mPlayBits.setDuration(duration);
-        mPlayBits.startRecord(beginTime);
-
-        long playtime = beginTime;
-        while (playtime - beginTime < duration * 1000000L) {
-            doFrame(mCanvas, playtime);
-            playtime = playtime + 1000000000L / FRAME_RATE;
-        }
-
-    }
-
-    private void handlerPrepareVedio() throws IOException {
-        duration = 4000000000L;
-        beginTime=0L;
-        File mFile = new File("/storage/emulated/0/sintel.mp4");
-        setSource(mFile);
-        doEncode();
-        awaitEncode();
-    }
-
-    private void saveBGM()throws IOException {
-        File mFile = new File("/storage/emulated/0/sintel.mp4");
-        setSourceAudio(mFile);
-        doEncodeAudio();
-    }
-
-    private File sourceFile;
-    private File sourceAudio;
-
-    private void setSource(File mFile) {
-        sourceFile = mFile;
-    }
-
-    private void setSourceAudio(File mFile) {
-        sourceAudio = mFile;
-    }
-
-    int bitmapIndex = 1;
-
-    private Bitmap getBitmap() {
-        if (bitmapIndex == 5) {
-            bitmapIndex = 1;
-            return null;
-        }
-
-        int bitmapId = mContext.getResources().getIdentifier("image" + bitmapIndex, "mipmap", mContext.getPackageName());
-        BitmapFactory.Options mOptions = new BitmapFactory.Options();
-        //  mOptions.inSampleSize = 2;
-        Bitmap mBitmap = BitmapFactory.decodeResource(mContext.getResources(), bitmapId, mOptions);
-        bitmapIndex++;
-        return mBitmap;
-    }
-
-    public void startEncoder() {
-
-        try {
-
-            mPendingAudioDecoderOutputBufferIndices = new LinkedList<Integer>();
-            mPendingAudioDecoderOutputBufferInfos = new LinkedList<MediaCodec.BufferInfo>();
-            mPendingAudioEncoderInputBufferIndices = new LinkedList<Integer>();
-            mPendingAudioEncoderOutputBufferInfos = new LinkedList<MediaCodec.BufferInfo>();
-            mPendingAudioEncoderOutputBufferIndices = new LinkedList<Integer>();
-            prepareEncoder();
-            saveBGM();
-
-
-            handlerPrepareVedio();
-
-            handlerPrepareClick(3000,4*1000000000L);
-            handlerPrepareClick(3000,7*1000000000L);
-            drainEncoder(true);
-            awaitAudio();
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            // release encoder, muxer, and input Surface
-            releaseEncoder();
-        }
-
-    }
-
-    /**
-     * Releases encoder resources.  May be called after partial / failed initialization.
-     */
-    private void releaseEncoder() {
-        if (VERBOSE) Log.d(TAG, "releasing encoder objects");
-        if (mEncoder != null) {
-            mEncoder.stop();
-            mEncoder.release();
-            mEncoder = null;
-        }
-        if (inputSurface != null) {
-            inputSurface.release();
-            inputSurface = null;
-        }
-        if (outputSurface != null) {
-            outputSurface.release();
-            outputSurface = null;
-        }
-        if (mMuxer != null) {
-            mMuxer.stop();
-            mMuxer.release();
-            mMuxer = null;
-        }
-        if (mVideoDecoder != null) {
-            mVideoDecoder.stop();
-            mVideoDecoder.release();
-            mVideoDecoder = null;
-        }
-        if (mVideoExtractor != null) {
-            mVideoExtractor.release();
-            mVideoExtractor = null;
-        }
-        if (mAudioEncoder != null) {
-            mAudioEncoder.stop();
-            mAudioEncoder.release();
-            mAudioEncoder = null;
-        }
-
-        if (mAudioExtractor != null) {
-            mAudioExtractor.release();
-            mAudioExtractor = null;
-        }
-
-        if (mAudioDecoder != null) {
-            mAudioDecoder.stop();
-            mAudioDecoder.release();
-            mAudioDecoder = null;
-        }
-        mPendingAudioDecoderOutputBufferIndices = null;
-        mPendingAudioDecoderOutputBufferInfos = null;
-        mPendingAudioEncoderInputBufferIndices = null;
-        mPendingAudioEncoderOutputBufferInfos = null;
-        mPendingAudioEncoderOutputBufferIndices = null;
-
-    }
-
-
-    public void prepare(MediaStream mediaStream) {
-        Utils.checkNull(mediaStream, "VideoVIew prepare NULL");
-        //mPlayBits.prepare(mediaStream);
-    }
-
+    private String savePath;
+    private String audioSource;
 
     // encoder / muxer state
     private MediaCodec mEncoder;
     private MediaMuxer mMuxer;
     private int mTrackIndex;
     private boolean mMuxerStarted;
-
-    // parameters for the encoder
-    private static final String MIME_TYPE = "video/avc";    // H.264 Advanced Video Coding
-    private static final int FRAME_RATE = 15;               // 15fps
-    private static final int IFRAME_INTERVAL = 10;          // 10 seconds between I-frames
 
     private MediaFormat mEncoderOutputAudioFormat = null;
     private MediaFormat mEncoderOutputVedioFormat = null;
@@ -280,6 +81,7 @@ public class RecoderRender implements OnNotifyChangeListener {
     private MediaExtractor mAudioExtractor = null;
     private MediaCodec mAudioDecoder = null;
 
+    private static final int frameRate = 15;
     // parameters for the video encoder
     private static final String OUTPUT_VIDEO_MIME_TYPE = "video/avc"; // H.264 Advanced Video Coding
     private static final int OUTPUT_VIDEO_BIT_RATE = 2000000; // 2Mbps
@@ -287,7 +89,6 @@ public class RecoderRender implements OnNotifyChangeListener {
     private static final int OUTPUT_VIDEO_IFRAME_INTERVAL = 10; // 10 seconds between I-frames
     private static final int OUTPUT_VIDEO_COLOR_FORMAT =
             MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface;
-
 
     // parameters for the audio encoder
     private static final String OUTPUT_AUDIO_MIME_TYPE = "audio/mp4a-latm"; // Advanced Audio Coding
@@ -309,21 +110,308 @@ public class RecoderRender implements OnNotifyChangeListener {
     // where to put the output file (note: /sdcard requires WRITE_EXTERNAL_STORAGE permission)
     private static final File OUTPUT_DIR = Environment.getExternalStorageDirectory();
 
+    private final Long ONE_MILLION = 1000000L;
+    private final Long ONE_BILLION = 1000000000L;
+
+    private float [] mBackgroundColor;
+    /**
+     * Used for editing the frames.
+     * <p>
+     * <p>Swaps green and blue channels by storing an RBGA color in an RGBA buffer.
+     */
+    private static final String FRAGMENT_SHADER =
+            "#extension GL_OES_EGL_image_external : require\n" +
+                    "precision mediump float;\n" +
+                    "varying vec2 vTextureCoord;\n" +
+                    "uniform samplerExternalOES sTexture;\n" +
+                    "void main() {\n" +
+                    "  gl_FragColor = texture2D(sTexture, vTextureCoord).rbga;\n" +
+                    "}\n";
+
+
+    private int mTotalTime;
+
+    private  boolean isStopEncoding =false;
+    private OnCompositeListener listener;
+
+
+    public interface OnCompositeListener {
+
+        void onSetCompositeProgress(int progress);
+
+    }
+
+
+
+    public RecorderRender() {
+        mPlayBits = new PlayBits();
+        mPlayBits.setOnNotifyChangeListener(this);
+        mBackgroundColor = new float[]{0,0,0,0};
+    }
+
+
+    public void setOnCompositeListener(OnCompositeListener listener) {
+        this.listener = listener;
+    }
+//    public void setDataSource(List<StoryAlbumClip> clips){
+//        mClips=clips;
+//    }
+
+    public void setBGMusic(String music){
+        audioSource=music;
+    }
+
+    public void setTotalTime(int totalTime){
+        mTotalTime=totalTime;
+    }
+
+    public void setSavePath(String savePath) {
+        this.savePath = savePath;
+    }
+
+
+
+
+
+    public void stopEncoder(){
+        isStopEncoding=true;
+//        drainEncoder(true);
+    }
+
+    public void startEncoder() {
+
+        try {
+
+            mOutputAudioTrack = -1;
+
+            mAudioExtractorDone = false;
+            mAudioDecoderDone = false;
+            mAudioEncoderDone = false;
+            mDecoderOutputAudioFormat = null;
+            mEncoderOutputAudioFormat = null;
+            mMuxerStarted = false;
+            mPendingAudioDecoderOutputBufferIndices = new LinkedList<Integer>();
+            mPendingAudioDecoderOutputBufferInfos = new LinkedList<MediaCodec.BufferInfo>();
+            mPendingAudioEncoderInputBufferIndices = new LinkedList<Integer>();
+            mPendingAudioEncoderOutputBufferInfos = new LinkedList<MediaCodec.BufferInfo>();
+            mPendingAudioEncoderOutputBufferIndices = new LinkedList<Integer>();
+            checkSource();
+            prepareEncoder();
+
+            doEncodeAudio(new File(audioSource),mTotalTime*ONE_MILLION);
+//            for(StoryAlbumClip clip:mClips){
+//                if(isStopEncoding){
+//                    break;
+//                }
+//                if(clip instanceof StoryAlbumImageClip){
+//                    recordImage(clip);
+//                }
+//                if(clip instanceof StoryAlbumVideoClip){
+//                    recordVideo(clip);
+//                }
+//            }
+            awaitAudio();
+            drainEncoder(true);
+            listener.onSetCompositeProgress(100);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // release encoder, muxer, and input Surface
+            releaseEncoder();
+
+        }
+
+    }
+
+    private void checkSource() throws Exception {
+        if(audioSource==null){
+            throw new RuntimeException("audioSource is null");
+        }
+        if(mTotalTime == 0){
+            throw new RuntimeException("total vedio time is 0");
+        }
+//        if(mClips==null){
+//            throw new RuntimeException("storyalbum content is null");
+//        }
+    }
+
+//    private void recordVideo(StoryAlbumClip clip) throws IOException {
+//        mVideoExtractorDone = false;
+//        mVideoDecoderDone = false;
+//        mDecoderOutputVideoFormat = null;
+//        mEncoderOutputVedioFormat = null;
+//        File file = new File(clip.getPath());
+//        if(!file.exists()){
+//            return;
+//        }
+//        Bitmap bg  = rotateBitmap(clip.getBitmap());
+//        doEncode(file,clip.getRhythmDuration()*ONE_MILLION,clip.getBeginTime()*ONE_MILLION,clip.getWidth(),clip.getHeight(),bg);
+//        isEncodeDone = false;
+//        awaitEncode();
+//        bg.recycle();
+//        bg=null;
+//    }
+
+    private Bitmap rotateBitmap(Bitmap bitmap) {
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        Matrix m = new Matrix();
+        m.postScale(1, -1);   //镜像垂直翻转
+        Bitmap new2 = Bitmap.createBitmap(bitmap, 0, 0, w, h, m, true);
+        return new2;
+    }
+
+//    private void recordImage(StoryAlbumClip clip) {
+//        Bitmap bitmap = clip.getBitmap();
+//        if(mCanvas == null){
+//            inputSurface.makeCurrent();
+//            mCanvas = new GLES20Canvas();
+//
+//        }
+//        mCanvas.setSize(mWidth, mHeight);
+//        mPlayBits.setResolution(mWidth, mHeight);
+//
+//        long beginTime = clip.getBeginTime()*ONE_MILLION;
+//        long duration = clip.getRhythmDuration() * ONE_MILLION;
+//        CompositeStatusControl control = new CompositeStatusControl();
+//        control.setStartTime(beginTime);
+//        MediaStream mMediaStream = null;
+//        switch (clip.getAnimation()) {
+//            case StoryAlbumClip.ANIMATION_ZOOM:
+//                mMediaStream = new AlphaComboStream(
+//                        new ZoomBmStream(bitmap, 0));
+//                mMediaStream.setStatusControl(control);
+//                mPlayBits.prepare((ComboStream) mMediaStream, duration, 1000 * ONE_MILLION, StatusIs.TRANSITION_PLAY_MODE_MERGE);
+//                break;
+//            case StoryAlbumClip.ANIMATION_PANO:
+//                mMediaStream = new PanoramicBmStream(bitmap, clip.mRotation);
+//                mMediaStream.setStatusControl(control);
+//                mPlayBits.prepare(mMediaStream, duration);
+//                break;
+//        }
+//
+//        long playtime = beginTime;
+//        while (playtime - beginTime < duration ) {
+//            doFrame(mCanvas, playtime);
+//            playtime = playtime + ONE_BILLION / frameRate;
+//            if(isStopEncoding){
+//                break;
+//            }
+//        }
+//    }
+
+    /**
+     * Releases encoder resources.  May be called after partial / failed initialization.
+     */
+    private void releaseEncoder() {
+        if (VERBOSE) Log.d(TAG, "releasing encoder objects");
+        if (mEncoder != null) {
+            try {
+                mEncoder.stop();
+                mEncoder.release();
+                mEncoder = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (inputSurface != null) {
+            try {
+                inputSurface.release();
+                inputSurface = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (outputSurface != null) {
+            try {
+                outputSurface.release();
+                outputSurface = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (mMuxer != null) {
+            try {
+                mMuxer.stop();
+                mMuxer.release();
+                mMuxer = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (mVideoDecoder != null) {
+            try {
+                mVideoDecoder.stop();
+                mVideoDecoder.release();
+                mVideoDecoder = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (mVideoExtractor != null) {
+            try {
+                mVideoExtractor.release();
+                mVideoExtractor = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (mAudioEncoder != null) {
+            try {
+                mAudioEncoder.stop();
+                mAudioEncoder.release();
+                mAudioEncoder = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (mAudioExtractor != null) {
+            try {
+                mAudioExtractor.release();
+                mAudioExtractor = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (mAudioDecoder != null) {
+            try {
+                mAudioDecoder.stop();
+                mAudioDecoder.release();
+                mAudioDecoder = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (mVideoDecoderHandlerThread != null) {
+            mVideoDecoderHandlerThread.quitSafely();
+            mVideoDecoderHandlerThread = null;
+        }
+        mPendingAudioDecoderOutputBufferIndices = null;
+        mPendingAudioDecoderOutputBufferInfos = null;
+        mPendingAudioEncoderInputBufferIndices = null;
+        mPendingAudioEncoderOutputBufferInfos = null;
+        mPendingAudioEncoderOutputBufferIndices = null;
+    }
+
+
     /**
      * Configures encoder and muxer state, and prepares the input Surface.
      */
     public void prepareEncoder() throws IOException {
         mBufferInfo = new MediaCodec.BufferInfo();
 
-        MediaFormat format = MediaFormat.createVideoFormat(MIME_TYPE, mWidth, mHeight);
+        MediaFormat format = MediaFormat.createVideoFormat(OUTPUT_VIDEO_MIME_TYPE, mWidth, mHeight);
 
         // Set some properties.  Failing to specify some of these can cause the MediaCodec
         // configure() call to throw an unhelpful exception.
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+                OUTPUT_VIDEO_COLOR_FORMAT);
         format.setInteger(MediaFormat.KEY_BIT_RATE, OUTPUT_VIDEO_BIT_RATE);
-        format.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
-        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
+        format.setInteger(MediaFormat.KEY_FRAME_RATE, OUTPUT_VIDEO_FRAME_RATE);
+        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, OUTPUT_VIDEO_IFRAME_INTERVAL);
         if (VERBOSE) Log.d(TAG, "format: " + format);
 
         // Create a MediaCodec encoder, and configure it with our format.  Get a Surface
@@ -333,7 +421,7 @@ public class RecoderRender implements OnNotifyChangeListener {
         // you will likely want to defer instantiation of CodecInputSurface until after the
         // "display" EGL context is created, then modify the eglCreateContext call to
         // take eglGetCurrentContext() as the share_context argument.
-        mEncoder = MediaCodec.createEncoderByType(MIME_TYPE);
+        mEncoder = MediaCodec.createEncoderByType(OUTPUT_VIDEO_MIME_TYPE);
 
 
         mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -343,10 +431,10 @@ public class RecoderRender implements OnNotifyChangeListener {
 
         // Output filename.  Ideally this would use Context.getFilesDir() rather than a
         // hard-coded output directory.
-        String outputPath = new File(OUTPUT_DIR,
-                "mystory" + ".mp4").toString();
-        Log.d(TAG, "output file is " + outputPath);
-
+        Log.d(TAG, "output file is " + savePath);
+//        String outputPath = new File(OUTPUT_DIR,
+//                "mystory" + ".mp4").toString();
+//        Log.d(TAG, "output file is " + outputPath);
 
         // Create a MediaMuxer.  We can't add the video track and start() the muxer here,
         // because our MediaFormat doesn't have the Magic Goodies.  These can only be
@@ -355,7 +443,7 @@ public class RecoderRender implements OnNotifyChangeListener {
         // We're not actually interested in multiplexing audio.  We just want to convert
         // the raw H.264 elementary stream we get from MediaCodec into a .mp4 file.
         try {
-            mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            mMuxer = new MediaMuxer(savePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
         } catch (IOException ioe) {
             throw new RuntimeException("MediaMuxer creation failed", ioe);
         }
@@ -364,12 +452,6 @@ public class RecoderRender implements OnNotifyChangeListener {
         mMuxerStarted = false;
     }
 
-
-
-
-
-    long beginTime;
-    long duration;
 
     @Override
     public void doInvalidate() {
@@ -388,8 +470,11 @@ public class RecoderRender implements OnNotifyChangeListener {
         // Feed any pending encoder output into the muxer.
         drainEncoder(false);
         inputSurface.makeCurrent();
-        mPlayBits.record(canvas, timeStampNanos);
-//        draw(canvas,i);
+        if(mBackgroundColor!=null){
+            canvas.clearBuffer(mBackgroundColor);
+        }
+        mPlayBits.calculate(timeStampNanos);
+        mPlayBits.onDraw(canvas);
         inputSurface.setPresentationTime(timeStampNanos);
 
         // Submit it to the encoder.  The eglSwapBuffers call will block if the input
@@ -436,8 +521,6 @@ public class RecoderRender implements OnNotifyChangeListener {
 //                if (mMuxerStarted) {
 //                    throw new RuntimeException("format changed twice");
 //                }
-
-
 //                MediaFormat newFormat = mEncoder.getOutputFormat();
 //                Log.d(TAG, "encoder output format changed: " + newFormat);
 //
@@ -445,6 +528,7 @@ public class RecoderRender implements OnNotifyChangeListener {
 //                mTrackIndex = mMuxer.addTrack(newFormat);
 //                mMuxer.start();
 //                mMuxerStarted = true;
+
                 mEncoderOutputVedioFormat = mEncoder.getOutputFormat();
                 setupMuxer();
             } else if (encoderStatus < 0) {
@@ -475,6 +559,10 @@ public class RecoderRender implements OnNotifyChangeListener {
                     encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
 
                     mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
+                    if(listener!=null&& mTotalTime!=0){
+                        int progress = (int) (mBufferInfo.presentationTimeUs/(mTotalTime*10));
+                        listener.onSetCompositeProgress(progress);
+                    }
                     if (VERBOSE) Log.d(TAG, "sent " + mBufferInfo.size + " bytes to muxer");
                 }
 
@@ -501,10 +589,8 @@ public class RecoderRender implements OnNotifyChangeListener {
     boolean isEncodeDone = false;
 
     private void awaitEncode() {
-        isEncodeDone = false;
         synchronized (this) {
             while (!isEncodeDone) {
-                Log.i("jzf","wati");
                 try {
                     wait();
                 } catch (InterruptedException ie) {
@@ -512,12 +598,10 @@ public class RecoderRender implements OnNotifyChangeListener {
             }
         }
     }
-
 
     private void awaitAudio() {
         synchronized (this) {
             while (!mAudioEncoderDone) {
-                Log.i("jzf","wati autio");
                 try {
                     wait();
                 } catch (InterruptedException ie) {
@@ -525,49 +609,7 @@ public class RecoderRender implements OnNotifyChangeListener {
             }
         }
     }
-
-    private void doEncode() throws IOException {
-
-        MediaCodecInfo videoCodecInfo = selectCodec(OUTPUT_VIDEO_MIME_TYPE);
-        if (videoCodecInfo == null) {
-            // Don't fail CTS if they don't have an AVC codec (not here, anyway).
-            Log.e(TAG, "Unable to find an appropriate codec for " + OUTPUT_VIDEO_MIME_TYPE);
-            return;
-        }
-        mVideoExtractor = createExtractor(sourceFile);
-        int videoInputTrack = getAndSelectVideoTrackIndex(mVideoExtractor);
-        if (videoInputTrack == -1) {
-            if (VERBOSE) Log.d(TAG, "missing video track in test video ");
-            return;
-        }
-        MediaFormat inputFormat = mVideoExtractor.getTrackFormat(videoInputTrack);
-
-        // We avoid the device-specific limitations on width and height by using values
-        // that are multiples of 16, which all tested devices seem to be able to handle.
-        MediaFormat outputVideoFormat =
-                MediaFormat.createVideoFormat(OUTPUT_VIDEO_MIME_TYPE, mWidth, mHeight);
-
-        // Set some properties. Failing to specify some of these can cause the MediaCodec
-        // configure() call to throw an unhelpful exception.
-        outputVideoFormat.setInteger(
-                MediaFormat.KEY_COLOR_FORMAT, OUTPUT_VIDEO_COLOR_FORMAT);
-        outputVideoFormat.setInteger(MediaFormat.KEY_BIT_RATE, OUTPUT_VIDEO_BIT_RATE);
-        outputVideoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, OUTPUT_VIDEO_FRAME_RATE);
-        outputVideoFormat.setInteger(
-                MediaFormat.KEY_I_FRAME_INTERVAL, OUTPUT_VIDEO_IFRAME_INTERVAL);
-        if (VERBOSE) Log.d(TAG, "video format: " + outputVideoFormat);
-
-        inputSurface.makeCurrent();
-        // Create a MediaCodec for the decoder, based on the extractor's format.
-        outputSurface = new OutputSurface();
-        outputSurface.changeFragmentShader(FRAGMENT_SHADER);
-        mVideoDecoder = createVideoDecoder(inputFormat, outputSurface.getSurface());
-        inputSurface.releaseEGLContext();
-
-
-    }
-
-    private void doEncodeAudio()throws IOException{
+    private void doEncodeAudio(File sourceAudio, long duration)throws IOException {
         MediaCodecInfo audioCodecInfo = selectCodec(OUTPUT_AUDIO_MIME_TYPE);
         if (audioCodecInfo == null) {
             // Don't fail CTS if they don't have an AAC codec (not here, anyway).
@@ -594,8 +636,9 @@ public class RecoderRender implements OnNotifyChangeListener {
         // our desired properties. Request a Surface to use for input.
         mAudioEncoder = createAudioEncoder(audioCodecInfo, outputAudioFormat);
         // Create a MediaCodec for the decoder, based on the extractor's format.
-        mAudioDecoder = createAudioDecoder(inputFormat);
+        mAudioDecoder = createAudioDecoder(inputFormat,duration);
     }
+
 
     /**
      * Creates an encoder for the given format using the specified codec.
@@ -696,7 +739,7 @@ public class RecoderRender implements OnNotifyChangeListener {
      *
      * @param inputFormat the format of the stream to decode
      */
-    private MediaCodec createAudioDecoder(MediaFormat inputFormat) throws IOException {
+    private MediaCodec createAudioDecoder(MediaFormat inputFormat, final long duration) throws IOException {
         MediaCodec decoder = MediaCodec.createDecoderByType(getMimeTypeFor(inputFormat));
         decoder.setCallback(new MediaCodec.Callback() {
             public void onError(MediaCodec codec, MediaCodec.CodecException exception) {
@@ -716,6 +759,12 @@ public class RecoderRender implements OnNotifyChangeListener {
                     if (VERBOSE) {
                         Log.d(TAG, "audio extractor: returned buffer of size " + size);
                         Log.d(TAG, "audio extractor: returned buffer for time " + presentationTime);
+                    }
+
+                    if(presentationTime * 1000>=duration||isStopEncoding){
+                        mAudioExtractorDone=true;
+                        codec.queueInputBuffer(index,0, 0, 0L, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                        return;
                     }
                     if (size >= 0) {
                         codec.queueInputBuffer(
@@ -828,6 +877,33 @@ public class RecoderRender implements OnNotifyChangeListener {
 
 
 
+    private void doEncode(File sourceFile, long duration, long beginTime, int videoWidth, int videoHeight, Bitmap bg) throws IOException {
+
+        MediaCodecInfo videoCodecInfo = selectCodec(OUTPUT_VIDEO_MIME_TYPE);
+        if (videoCodecInfo == null) {
+            // Don't fail CTS if they don't have an AVC codec (not here, anyway).
+            Log.e(TAG, "Unable to find an appropriate codec for " + OUTPUT_VIDEO_MIME_TYPE);
+            return;
+        }
+        mVideoExtractor = createExtractor(sourceFile);
+        int videoInputTrack = getAndSelectVideoTrackIndex(mVideoExtractor);
+        if (videoInputTrack == -1) {
+            if (VERBOSE) Log.d(TAG, "missing video track in test video ");
+            return;
+        }
+        MediaFormat inputFormat = mVideoExtractor.getTrackFormat(videoInputTrack);
+
+        inputSurface.makeCurrent();
+        // Create a MediaCodec for the decoder, based on the extractor's format.
+        outputSurface = new OutputSurface(mWidth,mHeight,videoWidth,videoHeight,bg);
+        outputSurface.changeFragmentShader(FRAGMENT_SHADER);
+        mVideoDecoder = createVideoDecoder(inputFormat, outputSurface.getSurface(),duration,beginTime);
+        inputSurface.releaseEGLContext();
+
+
+    }
+
+
     /**
      * Returns the first codec capable of encoding the specified MIME type, or null if no match was
      * found.
@@ -854,10 +930,7 @@ public class RecoderRender implements OnNotifyChangeListener {
 
     private MediaExtractor createExtractor(File mFile) throws IOException {
         MediaExtractor extractor;
-//        AssetFileDescriptor srcFd = getContext().getResources().openRawResourceFd(mSourceResId);
         extractor = new MediaExtractor();
-//        extractor.setDataSource(srcFd.getFileDescriptor(), srcFd.getStartOffset(),
-//                srcFd.getLength());
         FileDescriptor fd = new FileInputStream(mFile).getFD();
         extractor.setDataSource(fd, 0, mFile.length());
         return extractor;
@@ -870,7 +943,7 @@ public class RecoderRender implements OnNotifyChangeListener {
      * @param inputFormat the format of the stream to decode
      * @param surface     into which to decode the frames
      */
-    private MediaCodec createVideoDecoder(MediaFormat inputFormat, Surface surface) throws IOException {
+    private MediaCodec createVideoDecoder(MediaFormat inputFormat, Surface surface, final long duration, final long beginTime) throws IOException {
         mVideoDecoderHandlerThread = new HandlerThread("DecoderThread");
         mVideoDecoderHandlerThread.start();
         mVideoDecoderHandler = new CallbackHandler(mVideoDecoderHandlerThread.getLooper());
@@ -895,7 +968,7 @@ public class RecoderRender implements OnNotifyChangeListener {
                 while (!mVideoExtractorDone) {
                     int size = mVideoExtractor.readSampleData(decoderInputBuffer, 0);
                     long presentationTime = mVideoExtractor.getSampleTime();
-                    if(presentationTime * 1000>=duration){
+                    if(presentationTime * 1000>=duration||isStopEncoding){
                         mVideoExtractorDone=true;
                         codec.queueInputBuffer(index,0, 0, 0L, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                         return;
@@ -949,7 +1022,8 @@ public class RecoderRender implements OnNotifyChangeListener {
                     outputSurface.awaitNewImage();
                     // Edit the frame and send it to the encoder.
                     if (VERBOSE) Log.d(TAG, "output surface: draw image");
-                    outputSurface.drawImage();
+                    outputSurface.drawCanvasImage();
+//                    outputSurface.drawImage();
                     drainEncoder(false);
                     inputSurface.setPresentationTime(beginTime+
                             info.presentationTimeUs * 1000);
@@ -961,12 +1035,11 @@ public class RecoderRender implements OnNotifyChangeListener {
                 if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     if (VERBOSE) Log.d(TAG, "video decoder: EOS");
                     mVideoDecoderDone = true;
-                    synchronized (RecoderRender.this) {
+                    synchronized (RecorderRender.this) {
                         isEncodeDone = true;
-                        RecoderRender.this.notifyAll();
+                        RecorderRender.this.notifyAll();
 
                     }
-
                 }
             }
         };

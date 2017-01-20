@@ -19,46 +19,56 @@ public abstract class ComboStream extends MediaStream {
         mTransitionAnimStream = new TransitionAnimStream();
     }
 
-    public void setPreStream(MediaStream preStream) {
-        if(preStream instanceof ComboStream) {
-            this.mPreStream = ((ComboStream) preStream).getCurrentStream();
-        } else {
-            this.mPreStream = preStream;
-        }
+    void setPreStream(MediaStream preStream) {
+        if (preStream == null) return;
+       this.mPreStream = preStream.getCurrentStream();
     }
 
-    public void setTransitionAnimDuration(long duration) {
-        mTransitionAnimStream.setDuration(duration);
-    }
+
 
     public MediaStream getCurrentStream() {
         return mCurrentStream;
     }
 
-    public void setTransitionPlayMode(int mode) {
+    void setTransitionPlayMode(int mode) {
         this.mTransitionPlayMode = mode;
     }
 
+    int getTransitionPlayMode() {
+       return mTransitionPlayMode;
+    }
+
     @Override
-    public void setResolution(int width, int height) {
+    void setResolution(int width, int height) {
         super.setResolution(width, height);
         mCurrentStream.setResolution(width, height);
     }
 
     @Override
-    public void prepare() {
+   public void setStatusControl(BaseStatusControl statusControl) {
+        super.setStatusControl(statusControl);
+        try {
+            mTransitionAnimStream.setStatusControl((BaseStatusControl) statusControl.clone());
+            mCurrentStream.setStatusControl((BaseStatusControl) statusControl.clone());
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    void prepare() {
         super.prepare();
         mCurrentStream.prepare();
     }
 
     @Override
-    public void start() {
+    void start() {
         super.start();
         if(mTransitionPlayMode == TRANSITION_PLAY_MODE_MERGE) {
             mTransitionAnimStream.start();
             mCurrentStream.start();
         } else if(mTransitionPlayMode == TRANSITION_PLAY_MODE_ISOLATE) {
-            boolean isStartTransition =  mCurrentDurationTime < mTransitionAnimStream.getDuration();
+            boolean isStartTransition =  mStatusControl.getProgress() < mTransitionAnimStream.getDuration();
             if(isStartTransition)
                 mTransitionAnimStream.start();
             else
@@ -67,20 +77,20 @@ public abstract class ComboStream extends MediaStream {
     }
 
     @Override
-    public void restart() {
+    void restart() {
         super.restart();
         mTransitionAnimStream.restart();
         mCurrentStream.restart();
     }
 
     @Override
-    public void pause() {
+    void pause() {
         super.pause();
         if(mTransitionPlayMode == TRANSITION_PLAY_MODE_MERGE) {
             mTransitionAnimStream.pause();
             mCurrentStream.pause();
         } else if(mTransitionPlayMode == TRANSITION_PLAY_MODE_ISOLATE) {
-            boolean isPauseTransition =  mCurrentDurationTime < mTransitionAnimStream.getDuration();
+            boolean isPauseTransition =  mStatusControl.getProgress() < mTransitionAnimStream.getDuration();
             if(isPauseTransition)
                 mTransitionAnimStream.pause();
             else
@@ -89,14 +99,14 @@ public abstract class ComboStream extends MediaStream {
     }
 
     @Override
-    public void stop() {
+    void stop() {
         super.stop();
         mTransitionAnimStream.stop();
         mCurrentStream.stop();
     }
 
     @Override
-    public void seekTo(long durationT) {
+    void seekTo(long durationT) {
         super.seekTo(durationT);
         if(mTransitionPlayMode == TRANSITION_PLAY_MODE_MERGE) {
             mTransitionAnimStream.seekTo(durationT);
@@ -114,40 +124,35 @@ public abstract class ComboStream extends MediaStream {
     }
 
     @Override
-    public void setDuration(long duration) {
-        super.setDuration(duration);
-        long playDuration = 0;
-        if(mTransitionPlayMode == TRANSITION_PLAY_MODE_ISOLATE) {
-            playDuration = duration - mTransitionAnimStream.getDuration();
-        } else if(mTransitionPlayMode == TRANSITION_PLAY_MODE_MERGE) {
-            playDuration = duration;
-        }
-        mCurrentStream.setDuration(playDuration);
+    void setDuration(long duration) {
+        mTransitionAnimStream.setDuration(duration);
+    }
+
+    public void setTotalDuration(long duration) {
+        mStatusControl.setDuration(duration);
     }
 
     @Override
-    public void onDraw(GLCanvas canvas) {
-        long animTime = MediaStream.getCurrentTime();
-        mTransitionAnimStream.calculate(animTime);
+    protected void onDraw(GLCanvas canvas) {
         float gradientIndex = mPreStream == null ? 1f : mTransitionAnimStream.mAnimProgress;
         if(mTransitionPlayMode == TRANSITION_PLAY_MODE_MERGE) {
             if (mPreStream != null && gradientIndex != 1f) {
                 canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
-                onDrawPreStream(canvas, animTime, gradientIndex);
+                onDrawPreStream(canvas, gradientIndex);
                 canvas.restore();
             }
             canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
-            onDrawCurrentStream(canvas, animTime, gradientIndex);
+            onDrawCurrentStream(canvas, gradientIndex);
             canvas.restore();
         }else if(mTransitionPlayMode == TRANSITION_PLAY_MODE_ISOLATE) {
             if (mPreStream != null && gradientIndex != 1f) {
                 canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
-                onDrawPreStream(canvas, animTime, gradientIndex);
+                onDrawPreStream(canvas, gradientIndex);
                 canvas.restore();
             } else {
                 if(mCurrentStream != null) {
                     canvas.save(GLCanvas.SAVE_FLAG_ALPHA | GLCanvas.SAVE_FLAG_MATRIX);
-                    onDrawCurrentStream(canvas, animTime, gradientIndex);
+                    onDrawCurrentStream(canvas, gradientIndex);
                     canvas.restore();
                 }
             }
@@ -159,8 +164,16 @@ public abstract class ComboStream extends MediaStream {
         }
     }
 
-    public abstract void onDrawPreStream(GLCanvas canvas, long animTime, float gradientIndex);
-    public abstract void onDrawCurrentStream(GLCanvas canvas, long animTime, float gradientIndex);
+    @Override
+    boolean calculate(long currentTimeMillis) {
+        mCurrentStream.calculate(currentTimeMillis);
+        mTransitionAnimStream.calculate(currentTimeMillis);
+        return super.calculate(currentTimeMillis);
+    }
 
+
+
+    protected abstract void onDrawPreStream(GLCanvas canvas, float gradientIndex);
+    protected abstract void onDrawCurrentStream(GLCanvas canvas, float gradientIndex);
 
 }

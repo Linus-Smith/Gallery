@@ -1,5 +1,6 @@
 package com.android.gallery3d.mediaCore.anim;
 
+
 import com.android.gallery3d.glrenderer.GLCanvas;
 
 /**
@@ -9,7 +10,18 @@ import com.android.gallery3d.glrenderer.GLCanvas;
 public class TransitionAnimStream extends MediaStream {
 
     @Override
-    public void onDraw(GLCanvas canvas) {
+    public MediaStream getCurrentStream() {
+        return null;
+    }
+
+    @Override
+    protected void onDraw(GLCanvas canvas) {
         return;
+    }
+
+
+    @Override
+    protected void onCalculate(float progress) {
+        super.onCalculate(progress);
     }
 }

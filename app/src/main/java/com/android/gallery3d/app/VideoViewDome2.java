@@ -13,8 +13,6 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.android.gallery3d.R;
-import com.android.gallery3d.mediaCore.Utils.MediaCodecRecoder;
-import com.android.gallery3d.mediaCore.Utils.MediaCodecRecoderMuti;
 import com.android.gallery3d.mediaCore.anim.AlphaComboStream;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
 import com.android.gallery3d.mediaCore.anim.VideoStream;
@@ -22,6 +20,7 @@ import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
 import com.android.gallery3d.mediaCore.recoder.EncodeAndMuxTest;
 import com.android.gallery3d.mediaCore.recoder.RecoderRender;
 import com.android.gallery3d.mediaCore.recoder.TestGLCanvas;
+import com.android.gallery3d.mediaCore.view.Inte.StatusIs;
 import com.android.gallery3d.mediaCore.view.VideoView;
 import com.android.gallery3d.ui.GLRootView;
 
@@ -141,45 +140,45 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     }
 
     private void recode() {
-        new Thread(){
-            @Override
-            public void run() {
-                String path2 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/sintel.mp4";
-                MediaCodecRecoder recoder = new MediaCodecRecoder();
-                MediaCodecRecoder.SaveTask task = new MediaCodecRecoder.SaveTask(recoder);
-                try {
-                    recoder.saveVideo(new File(path2));
-                    task.execute();
-
-                } catch (Throwable throwable) {
-                    throwable.printStackTrace();
-                }
-            }
-        }.start();
+//        new Thread(){
+//            @Override
+//            public void run() {
+//                String path2 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/sintel.mp4";
+//                MediaCodecRecoder recoder = new MediaCodecRecoder();
+//                MediaCodecRecoder.SaveTask task = new MediaCodecRecoder.SaveTask(recoder);
+//                try {
+//                    recoder.saveVideo(new File(path2));
+//                    task.execute();
+//
+//                } catch (Throwable throwable) {
+//                    throwable.printStackTrace();
+//                }
+//            }
+//        }.start();
 
     }
 
     private void recode2(){
-        new Thread() {
-            public void run() {
-                String path1 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/1.mp4";
-                String path2 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/sintel.mp4";
-                MediaCodecRecoderMuti recoder = new MediaCodecRecoderMuti(VideoViewDome2.this);
-
-
-                MediaCodecRecoderMuti.SaveTask task = new MediaCodecRecoderMuti.SaveTask(recoder);
-                try {
-                    ArrayList<File> files = new ArrayList<File>();
-                    files.add(new File(path1));
-                    files.add(new File(path2));
-                    recoder.saveVedios(files);
-                    task.execute();
-
-                } catch (Throwable throwable) {
-                    throwable.printStackTrace();
-                }
-            }
-        }.start();
+//        new Thread() {
+//            public void run() {
+//                String path1 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/1.mp4";
+//                String path2 = Environment.getExternalStorageDirectory().getAbsolutePath()+"/sintel.mp4";
+//                MediaCodecRecoderMuti recoder = new MediaCodecRecoderMuti(VideoViewDome2.this);
+//
+//
+//                MediaCodecRecoderMuti.SaveTask task = new MediaCodecRecoderMuti.SaveTask(recoder);
+//                try {
+//                    ArrayList<File> files = new ArrayList<File>();
+//                    files.add(new File(path1));
+//                    files.add(new File(path2));
+//                    recoder.saveVedios(files);
+//                    task.execute();
+//
+//                } catch (Throwable throwable) {
+//                    throwable.printStackTrace();
+//                }
+//            }
+//        }.start();
     }
     private void recode3(){
         TestGLCanvas test = new TestGLCanvas(VideoViewDome2.this);
@@ -199,8 +198,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
 
     private void handlerPrepareClick() {
         ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
-        mVideo.prepare(mZoomBmStream);
-        mVideo.setDuration(3000);
+        mVideo.prepare(mZoomBmStream, 2000);
         tvDuTime.setText(mVideo.getDuration() + " ");
         mSeekBar.setMax((int) mVideo.getDuration());
         mSeekBar.setProgress(0);
@@ -210,15 +208,14 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     private void handlerPrepareVedio() {
         File mFile = new File("/storage/emulated/0/1.mp4");
 
-        MediaStream mMediaStream = null;
-        AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail()) );
-        alphaComboStrea.setTransitionAnimDuration(1000);
-        mMediaStream = alphaComboStrea;
-        mVideo.prepare(mMediaStream);
-        mVideo.setDuration(3000);
-        tvDuTime.setText(mVideo.getDuration() + " ");
-        mSeekBar.setMax((int) mVideo.getDuration());
-        mSeekBar.setProgress(0);
+//        MediaStream mMediaStream = null;
+//        AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail()) );
+//        alphaComboStrea.setTransitionAnimDuration(1000);
+//        mMediaStream = alphaComboStrea;
+//        mVideo.prepare(mMediaStream);
+//        tvDuTime.setText(mVideo.getDuration() + " ");
+//        mSeekBar.setMax((int) mVideo.getDuration());
+//        mSeekBar.setProgress(0);
 
     }
 
@@ -259,19 +256,14 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
                 File mFile = getFile(isfirst);
 
                 MediaStream mMediaStream = null;
-                Bitmap mBitmap = null;
-                if(mBitmap != null) {
-                 AlphaComboStream  alphaComboStream = new AlphaComboStream(new ZoomBmStream(mBitmap , 0));
-                    alphaComboStream.setTransitionAnimDuration(1000);
+                 AlphaComboStream  alphaComboStream = new AlphaComboStream(new ZoomBmStream(getBitmap() , 0));
+                    mVideo.prepare(alphaComboStream, 4000, 1000, StatusIs.TRANSITION_PLAY_MODE_MERGE);
                   //  alphaComboStream.setTransitionPlayMode(StateIs.TRANSITION_PLAY_MODE_ISOLATE);
                     mMediaStream = alphaComboStream;
-                } else {
-                    AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail()) );
-                    alphaComboStrea.setTransitionAnimDuration(1000);
-                    mMediaStream = alphaComboStrea;
-                }
-                mVideo.prepare(mMediaStream);
-                mVideo.setDuration(4000);
+//                    AlphaComboStream  alphaComboStrea = new AlphaComboStream( new VideoStream(mFile, mVideo.getVideoScreenNail()) );
+//                    alphaComboStrea.setTransitionAnimDuration(1000);
+//                    mMediaStream = alphaComboStrea;
+
                 tvDuTime.setText(mVideo.getDuration() + " ");
                 mSeekBar.setMax((int) mVideo.getDuration());
                 mSeekBar.setProgress(0);

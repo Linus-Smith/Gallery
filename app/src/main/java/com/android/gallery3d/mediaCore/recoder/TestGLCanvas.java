@@ -36,9 +36,11 @@ import android.view.Surface;
 import com.android.gallery3d.glrenderer.BitmapTexture;
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.glrenderer.GLES20Canvas;
+import com.android.gallery3d.mediaCore.anim.PlayBits;
 import com.android.gallery3d.mediaCore.anim.ZoomBmStream;
+import com.android.gallery3d.mediaCore.recorder.InputSurface;
+import com.android.gallery3d.mediaCore.recorder.OutputSurface;
 import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
-import com.android.gallery3d.mediaCore.view.PlayBits;
 
 import java.io.File;
 import java.io.IOException;
@@ -140,7 +142,6 @@ public class TestGLCanvas implements OnNotifyChangeListener {
             canvas.setSize(mWidth,mHeight);
 
             ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
-            mPlayBits.prepare(mZoomBmStream);
             mPlayBits.setDuration(3000);
 //            outputSurface = new OutputSurface();
 //            outputSurface.changeFragmentShader(FRAGMENT_SHADER);
@@ -469,8 +470,6 @@ boolean isEncodeDone = false;
             drainEncoder(true);
         }else {
             ZoomBmStream mZoomBmStream = new ZoomBmStream(getBitmap(), 0);
-            mPlayBits.prepare(mZoomBmStream);
-            mPlayBits.setDuration(3000);
 //            outputSurface = new OutputSurface();
 //            outputSurface.changeFragmentShader(FRAGMENT_SHADER);
 

@@ -1,7 +1,8 @@
 package com.android.gallery3d.mediaCore.anim;
 
-import android.app.Activity;
+import android.graphics.Bitmap;
 
+import com.android.gallery3d.glrenderer.BitmapTexture;
 import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.mediaCore.Utils.VideoScreenNail;
 
@@ -13,14 +14,14 @@ import java.io.File;
 
 public class VideoStream extends MediaStream {
 
+    private int mVideoWidth = -1;
+    private int mVideoHeight = -1;
+    private int drawX = 0;
+    private int drawY = 0;
+    private boolean isBlurEdge = false;
     private VideoScreenNail mVideoScreenNail;
+    protected BitmapTexture mBlurTexture;
     private File mVideoPath;
-
-    public VideoStream(File videoPath, Activity mActivity) {
-        if(!videoPath.exists()) throw new RuntimeException("video not exists ");
-        mVideoScreenNail  = new VideoScreenNail(videoPath, mActivity);
-        mVideoPath = videoPath;
-    }
 
     public VideoStream(File videoPath, VideoScreenNail videoScreenNail) {
         if(!videoPath.exists()) throw new RuntimeException("video not exists ");
@@ -29,55 +30,85 @@ public class VideoStream extends MediaStream {
         mVideoPath = videoPath;
     }
 
+    public VideoStream(Bitmap bitmap, File videoPath, VideoScreenNail videoScreenNail, int videoWidth, int videoHeight) {
+        this(videoPath, videoScreenNail);
+        mBlurTexture = new BitmapTexture(bitmap);
+        mVideoWidth = videoWidth;
+        mVideoHeight = videoHeight;
+    }
+
     @Override
-    public void onDraw(GLCanvas canvas) {
-        mVideoScreenNail.draw(canvas, 0, 0, mWidth, mHeight );
+    void setResolution(int width, int height) {
+        super.setResolution(width, height);
+        float ratio = Math.min(((float)mWidth) / mVideoWidth, ((float)mHeight) / mVideoHeight);
+        if (ratio > 1.0f) {
+            ratio = 1.0f;
+            isBlurEdge = false;
+        } else {
+            isBlurEdge = true;
+        }
+        mVideoWidth = (int)(mVideoWidth * ratio);
+        mVideoHeight = (int)(mVideoHeight * ratio);
+        drawX = (mWidth - mVideoWidth) / 2;
+        drawY = (mHeight - mVideoHeight) / 2;
+    }
+
+    @Override
+    protected void onDraw(GLCanvas canvas) {
+        if(isBlurEdge){
+            canvas.drawTexture(mBlurTexture, 0, 0, mWidth, mHeight);
+        }
+        mVideoScreenNail.draw(canvas, drawX, drawY, mVideoWidth, mVideoHeight);
     }
 
 
     @Override
     protected void onCalculate(float progress) {
-
+        super.onCalculate(progress);
     }
 
     @Override
-    public void prepare() {
+    void prepare() {
         mVideoScreenNail.prepare();
     }
 
     @Override
-    public void start() {
-        if(mPlayState != PLAY_STATE_START){
+    void start() {
+        if(mStatusControl.getPlayState() != PLAY_STATE_START){
             mVideoScreenNail.start();
         }
         super.start();
 
     }
     @Override
-    public void pause() {
+    void pause() {
 
 
-        if(mPlayState == PLAY_STATE_START){
+        if(mStatusControl.getPlayState() == PLAY_STATE_START){
             mVideoScreenNail.pause();
         }
         super.pause();
     }
 
-    public void stop(){
-
+    @Override
+    void stop(){
         super.stop();
         mVideoScreenNail.stop();
     }
 
     @Override
-    public void seekTo(long durationT) {
+    MediaStream getCurrentStream() {
+        return this;
+    }
 
+    @Override
+    void seekTo(long durationT) {
         super.seekTo(durationT);
         mVideoScreenNail.seekTo(durationT*1000);
     }
 
     @Override
-    public void restart() {
+    void restart() {
         super.restart();
         mVideoScreenNail.restart();
     }

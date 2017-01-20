@@ -1,24 +1,14 @@
 package com.android.gallery3d.mediaCore.anim;
 
 
-import com.android.gallery3d.common.Utils;
 import com.android.gallery3d.glrenderer.GLCanvas;
-import com.android.gallery3d.mediaCore.view.Inte.StateIs;
-import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
+import com.android.gallery3d.mediaCore.view.Inte.StatusIs;
 
 /**
  * Created by linusyang on 16-12-9.
  */
 
-public abstract class MediaStream implements VIPlayControl , StateIs{
-
-    protected static final long NO_ANIMATION = -2;
-    protected long mStartTime = NO_ANIMATION;
-    protected long mBeginTime = NO_ANIMATION;
-    protected int  mPlayState = PLAY_STATE_STOP;
-
-    protected long mDuration;
-    protected long mCurrentDurationTime = 0;
+public abstract class MediaStream implements StatusIs{
 
     protected int mWidth;
     protected int mHeight;
@@ -27,125 +17,98 @@ public abstract class MediaStream implements VIPlayControl , StateIs{
 
 
 
-    @Override
-    public void start() {
-        if(mPlayState == PLAY_STATE_STOP) {
-            mStartTime = getCurrentTime();
-            mPlayState = PLAY_STATE_START;
-        } else if( mPlayState == PLAY_STATE_PAUSE ) {
-            mStartTime = getCurrentTime() -  mCurrentDurationTime;
-            mPlayState = PLAY_STATE_START;
-            calculate(getCurrentTime());
-        }
+    protected BaseStatusControl mStatusControl;
+
+     public MediaStream() {
+         mStatusControl = new PlayStatusControl();
+     }
+
+   public void setStatusControl(BaseStatusControl statusControl) {
+        mStatusControl = statusControl;
     }
 
-    public void setResolution(int width, int height) {
+
+
+    void start() {
+        mStatusControl.start();
+    }
+
+    void setResolution(int width, int height) {
         this.mWidth = width;
         this.mHeight = height;
     }
 
-    public void setBeginTime(long beginTime){
-        mBeginTime = beginTime;
+
+     void prepare() {
+        mStatusControl.prepare();
     }
 
-    @Override
-    public void prepare() {
+    void restart() {
+        mStatusControl.restart();
     }
 
-    @Override
-    public void restart() {
-        mStartTime = getCurrentTime();
-        mPlayState = PLAY_STATE_START;
-        calculate(mStartTime);
+
+    void pause() {
+        mStatusControl.pause();
     }
 
-    @Override
-    public void pause() {
-        if(mPlayState == PLAY_STATE_START) {
-            mPlayState = PLAY_STATE_PAUSE;
-        }
+
+    void seekTo(long durationT) {
+        mStatusControl.seekTo(durationT);
     }
 
-    @Override
-    public void seekTo(long durationT) {
-        if(durationT > mDuration && durationT < 0) return;
-        if(mPlayState == PLAY_STATE_START) {
-            mStartTime = getCurrentTime() -  durationT;
-        } else {
-            mCurrentDurationTime = durationT;
-            mStartTime = getCurrentTime() -  durationT;
-            calculate(getCurrentTime());
-        }
 
+    int getPlayState() {
+        return mStatusControl.getPlayState();
     }
 
-    @Override
-    public int getPlayState() {
-        return mPlayState;
+
+    long getProgress() {
+        return mStatusControl.getProgress();
     }
 
-    @Override
-    public long getProgress() {
-        return mCurrentDurationTime;
+
+    long getDuration() {
+        return mStatusControl.getDuration();
     }
 
-    @Override
-    public long getDuration() {
-        return mDuration;
+    void setDuration(long duration) {
+       mStatusControl.setDuration(duration);
     }
 
-    @Override
-    public void setDuration(long duration) {
-        this.mDuration = duration;
+
+    void stop() {
+        mStatusControl.stop();
     }
 
-    @Override
-    public void stop() {
-        if(mPlayState != PLAY_STATE_STOP) {
-            mPlayState = PLAY_STATE_STOP;
-            mStartTime = NO_ANIMATION;
-            mCurrentDurationTime = 0;
-        }
-    }
+     abstract MediaStream getCurrentStream();
 
-    public boolean isCompletion() {
-        return mCurrentDurationTime == mDuration &&  mPlayState != PLAY_STATE_STOP;
+
+    boolean isCompletion() {
+        return mStatusControl.isCompletion();
     }
 
 
     /**
      * @param canvas GLCanvas gives a convenient interface to draw using OpenGL.
      */
-    public void apply(GLCanvas canvas){
+    void apply(GLCanvas canvas){
         onDraw(canvas);
     }
 
-    public void reord(long timeStamp){
-        long elapse =  timeStamp - mBeginTime;
-        long duration = mDuration*1000000;
-        mCurrentDurationTime = elapse > duration ? mDuration : elapse/1000000;
-        float x = Utils.clamp((float) elapse / duration, 0f, 1f);
-        onCalculate(x);
+    protected abstract void onDraw(GLCanvas canvas);
+
+
+    boolean calculate(long currentTimeMillis) {
+        BaseStatusControl.CalculateEntry calculateEntry = mStatusControl.calculate(currentTimeMillis);
+        if(calculateEntry.isCanCalculate) {
+            onCalculate(calculateEntry.value);
+            return true;
+        }
+        return false;
     }
 
-    public abstract void onDraw(GLCanvas canvas) ;
 
-
-    public boolean calculate(long currentTimeMillis) {
-        if(mPlayState == PLAY_STATE_STOP || mPlayState == PLAY_STATE_PAUSE) return false;
-        long elapse =  currentTimeMillis - mStartTime;
-        mCurrentDurationTime = elapse > mDuration ? mDuration : elapse;
-        float x = Utils.clamp((float) elapse / mDuration, 0f, 1f);
-        onCalculate( x);
-        return true;
-    }
-
-    /**
-     * @return the current time in milliseconds since January 1, 1970 00:00:00.0 UTC.
-     */
-    public static long getCurrentTime() {
-        return System.currentTimeMillis();
-    }
 
     protected void onCalculate(float progress) {
         mAnimProgress = progress;

@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-package com.android.gallery3d.mediaCore.recoder;
+package com.android.gallery3d.mediaCore.recorder;
 
+import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
 import android.util.Log;
 import android.view.Surface;
+
+import com.android.gallery3d.glrenderer.BitmapTexture;
+import com.android.gallery3d.glrenderer.ExtTexture;
+import com.android.gallery3d.glrenderer.GLCanvas;
+import com.android.gallery3d.glrenderer.GLES20Canvas;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
+
+import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
 
 /**
@@ -62,6 +70,18 @@ public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
 
     private TextureRender mTextureRender;
 
+    GLCanvas glCanvas;
+    ExtTexture renderTexture;
+
+    private int mVideoWidth;
+    private int mVideoHeight;
+
+    private int mWidth;
+    private int mHeight;
+
+    private BitmapTexture bgBitmap;
+    private float[] mTransform = new float[16];
+
     /**
      * Creates an OutputSurface backed by a pbuffer with the specifed dimensions.  The new
      * EGL context and surface will be made current.  Creates a Surface that can be passed
@@ -84,6 +104,30 @@ public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
      */
     public OutputSurface() {
         setup();
+    }
+
+    public OutputSurface(int width, int height, int videoWidth, int videoHeight, Bitmap bg){
+        mWidth=width;
+        mHeight=height;
+        float ratio = Math.min(((float)width) / videoWidth, ((float)height) / videoHeight);
+        if (ratio > 1.0f) ratio = 1.0f;
+        mVideoWidth = (int)(videoWidth * ratio);
+        mVideoHeight = (int)(videoHeight * ratio);
+        bgBitmap = new BitmapTexture(bg);
+        canvasSetup();
+    }
+
+    private void canvasSetup(){
+        mTextureRender = new TextureRender();
+        mTextureRender.surfaceCreated();
+
+        glCanvas = new GLES20Canvas();
+        glCanvas.setSize(mWidth, mHeight);
+        renderTexture = new ExtTexture(glCanvas, GL_TEXTURE_EXTERNAL_OES);
+        renderTexture.setSize(mVideoWidth, mVideoHeight);
+        mSurfaceTexture = new SurfaceTexture(renderTexture.getId());
+        mSurfaceTexture.setOnFrameAvailableListener(this);
+        mSurface = new Surface(mSurfaceTexture);
     }
 
     /**
@@ -264,6 +308,24 @@ public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
      */
     public void drawImage() {
         mTextureRender.drawFrame(mSurfaceTexture);
+    }
+
+    public void drawCanvasImage(){
+        mSurfaceTexture.getTransformMatrix(mTransform);
+
+        int x = (mWidth-mVideoWidth)/2;
+        int y = (mHeight-mVideoHeight)/2;
+        // Flip vertically.
+        glCanvas.save(GLCanvas.SAVE_FLAG_MATRIX);
+        int cx = x + mVideoWidth / 2;
+        int cy = y + mVideoHeight / 2;
+        glCanvas.translate(cx, cy);
+        glCanvas.scale(1, -1, 1);
+        glCanvas.translate(-cx, -cy);
+//        updateTransformMatrix(mTransform);
+        glCanvas.drawTexture(bgBitmap,0,0,mWidth,mHeight);
+        glCanvas.drawTexture(renderTexture, mTransform, x, y, mVideoWidth, mVideoHeight);
+        glCanvas.restore();
     }
 
     @Override

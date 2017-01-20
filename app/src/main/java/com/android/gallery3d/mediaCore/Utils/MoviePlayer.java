@@ -20,7 +20,6 @@ import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
@@ -38,7 +37,7 @@ import java.nio.ByteBuffer;
  */
 public class MoviePlayer {
     private static final String TAG = "MoviePlayer";
-    private static final boolean VERBOSE = true;
+    private static final boolean VERBOSE = false;
 
     // Declare this here to reduce allocations.
     private MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
@@ -59,11 +58,6 @@ public class MoviePlayer {
     boolean restart = false;
     long seekTime = 0L;
     private final Object mPauseLock = new Object();
-
-    MediaExtractor extractor = null;
-    MediaCodec decoder = null;
-    MediaFormat format;
-    int trackIndex;
     /**
      * Interface to be implemented by class that manages playback UI.
      * <p>
@@ -118,7 +112,6 @@ public class MoviePlayer {
      */
     public MoviePlayer(File sourceFile, Surface outputSurface, FrameCallback frameCallback, UpdatePlayTimeCallback updatePlayTimeCallback)
             throws IOException {
-        Log.i("jzf",sourceFile.getAbsolutePath());
         mSourceFile = sourceFile;
         mOutputSurface = outputSurface;
         mFrameCallback = frameCallback;
@@ -178,7 +171,9 @@ public class MoviePlayer {
      * Called from arbitrary thread.
      */
     public void requestStop() {
+        mIsPauseRequested = false;
         mIsStopRequested = true;
+        notifyPause();
     }
 
 
@@ -199,33 +194,9 @@ public class MoviePlayer {
      * Does not return until video playback is complete, or we get a "stop" signal from
      * frameCallback.
      */
-    public void prepare()throws IOException {
-
-        // The MediaExtractor error messages aren't very useful.  Check to see if the input
-        // file exists so we can throw a better one if it's not there.
-        if (!mSourceFile.canRead()) {
-            throw new FileNotFoundException("Unable to read " + mSourceFile);
-        }
-
-        extractor = new MediaExtractor();
-        extractor.setDataSource(mSourceFile.toString());
-        trackIndex = selectTrack(extractor);
-        if (trackIndex < 0) {
-            throw new RuntimeException("No video track found in " + mSourceFile);
-        }
-        extractor.selectTrack(trackIndex);
-
-        format = extractor.getTrackFormat(trackIndex);
-
-        // Create a MediaCodec decoder, and configure it with the MediaFormat from the
-        // extractor.  It's very important to use the format from the extractor because
-        // it contains a copy of the CSD-0/CSD-1 codec-specific data chunks.
-        String mime = format.getString(MediaFormat.KEY_MIME);
-        decoder = MediaCodec.createDecoderByType(mime);
-    }
-
-
     public void play() throws IOException {
+        MediaExtractor extractor = null;
+        MediaCodec decoder = null;
 
         // The MediaExtractor error messages aren't very useful.  Check to see if the input
         // file exists so we can throw a better one if it's not there.
@@ -234,21 +205,21 @@ public class MoviePlayer {
         }
 
         try {
-//            extractor = new MediaExtractor();
-//            extractor.setDataSource(mSourceFile.toString());
-//            int trackIndex = selectTrack(extractor);
-//            if (trackIndex < 0) {
-//                throw new RuntimeException("No video track found in " + mSourceFile);
-//            }
-//            extractor.selectTrack(trackIndex);
-//
-//            MediaFormat format = extractor.getTrackFormat(trackIndex);
-//
-//            // Create a MediaCodec decoder, and configure it with the MediaFormat from the
-//            // extractor.  It's very important to use the format from the extractor because
-//            // it contains a copy of the CSD-0/CSD-1 codec-specific data chunks.
-//            String mime = format.getString(MediaFormat.KEY_MIME);
-//            decoder = MediaCodec.createDecoderByType(mime);
+            extractor = new MediaExtractor();
+            extractor.setDataSource(mSourceFile.toString());
+            int trackIndex = selectTrack(extractor);
+            if (trackIndex < 0) {
+                throw new RuntimeException("No video track found in " + mSourceFile);
+            }
+            extractor.selectTrack(trackIndex);
+
+            MediaFormat format = extractor.getTrackFormat(trackIndex);
+
+            // Create a MediaCodec decoder, and configure it with the MediaFormat from the
+            // extractor.  It's very important to use the format from the extractor because
+            // it contains a copy of the CSD-0/CSD-1 codec-specific data chunks.
+            String mime = format.getString(MediaFormat.KEY_MIME);
+            decoder = MediaCodec.createDecoderByType(mime);
             decoder.configure(format, mOutputSurface, null, 0);
             decoder.start();
 
@@ -272,7 +243,7 @@ public class MoviePlayer {
      *
      * @return the track index, or -1 if no video track is found.
      */
-    private static int selectTrack(MediaExtractor extractor) {
+    private int selectTrack(MediaExtractor extractor) {
         // Select the first video track we find, ignore the rest.
         int numTracks = extractor.getTrackCount();
         for (int i = 0; i < numTracks; i++) {
@@ -491,10 +462,7 @@ public class MoviePlayer {
                             frameCallback.postRender();
                         }
                         if(doRender && updatePlayTimeCallback!=null){
-                            if(mBufferInfo.presentationTimeUs!=0){
-                                updatePlayTimeCallback.updateCurrentPlayTime(mBufferInfo.presentationTimeUs/1000);
-                            }
-
+                            updatePlayTimeCallback.updateCurrentPlayTime(mBufferInfo.presentationTimeUs/1000);
                         }
                         Log.d(TAG, " mBufferInfo. 2presentationTimeUs = "+mBufferInfo.presentationTimeUs);
                     }
@@ -514,7 +482,6 @@ public class MoviePlayer {
     private void seekToTime(long timeUs){
         seekTime = timeUs;
         isSeek = true;
-
         Log.i(TAG,"seek timeUs"+timeUs);
     }
 
@@ -620,13 +587,6 @@ public class MoviePlayer {
             }
         }
 
-        public void prepare(){
-            try {
-                mPlayer.prepare();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
 
         public void restart(){
             mPlayer.restart();
@@ -647,8 +607,9 @@ public class MoviePlayer {
                 }
 
                 // Send message through Handler so it runs on the right thread.
-                mLocalHandler.sendMessage(
-                        mLocalHandler.obtainMessage(MSG_PLAY_STOPPED, mFeedback));
+//                mLocalHandler.sendMessage(
+//                        mLocalHandler.obtainMessage(MSG_PLAY_STOPPED, mFeedback));
+                mFeedback.playbackStopped();
             }
         }
 

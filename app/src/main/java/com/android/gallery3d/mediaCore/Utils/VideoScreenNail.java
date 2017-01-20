@@ -1,17 +1,12 @@
 package com.android.gallery3d.mediaCore.Utils;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.graphics.SurfaceTexture;
-import android.opengl.GLES20;
 import android.util.Log;
 import android.view.Surface;
 
-import com.android.gallery3d.app.VideoDomeActivity;
 import com.android.gallery3d.glrenderer.GLCanvas;
-import com.android.gallery3d.glrenderer.GLPaint;
 import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
-import com.android.gallery3d.ui.GLRoot;
 import com.android.gallery3d.ui.SurfaceTextureScreenNail;
 
 import java.io.File;
@@ -25,7 +20,6 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
     private static final String TAG = "VideoScreenNail";
 
     private MoviePlayer.PlayTask mPlayTask;
-    private boolean isPlay = false;
 
     public void setmFile(File mFile) {
         this.mFile = mFile;
@@ -36,7 +30,6 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
     private long currentPlayTime;
 
     public VideoScreenNail(File mFile , Activity mActivity) {
-        isPlay = false;
         this.mActivity = mActivity;
         this.mFile = mFile;
     }
@@ -63,24 +56,20 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
 //        GLRoot root = mActivity.getGLRoot();
 //        if (root != null) root.requestRender();
     }
+
+    public int getStatus() {
+        return 0;
+    }
+
     @Override
     public void draw(GLCanvas canvas, int x, int y, int width, int height) {
         super.draw(canvas, x, y, width, height);
-//        GLPaint mPaint = new GLPaint();
-//        mPaint.setColor(Color.RED);
-//        canvas.drawRect(100,100, 600,600,mPaint);
         if (getSurfaceTexture() == null)
             super.acquireSurfaceTexture(canvas);
-//        if(getSurfaceTexture() != null && !isPlay) {
-//            mActivity.runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    play(mFile);
-//                    isPlay = true;
-//                }
-//            });
-//
-//        }
+    }
+
+    public void draw(GLCanvas canvas, int width, int height, int rotation, float progress) {
+
     }
 
     public void play(File file){
@@ -109,7 +98,6 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
 
 
         mPlayTask = new MoviePlayer.PlayTask(player, this);
-        mPlayTask.prepare();
 
         mPlayTask.execute();
     }
@@ -117,29 +105,24 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
     @Override
     public void playbackStopped() {
         mPlayTask = null;
-        Log.i(TAG,"playback callback");
-    }
-
-    public void stopPlayback() {
-        if (mPlayTask != null) {
-            mPlayTask.requestStop();
+        synchronized (mStopObject) {
+            mStopObject.notifyAll();
         }
     }
+
 
     @Override
     public void prepare() {
 
-        play(mFile);
-//        pause();
     }
 
     @Override
     public void start() {
-//        play(mFile);
-//        if (mPlayTask != null) {
-//            mPlayTask.execute();
-//        }
-//        pause();
+        if (mPlayTask != null) {
+            mPlayTask.pause();
+        } else {
+            play(mFile);
+        }
     }
 
     @Override
@@ -156,11 +139,22 @@ public class VideoScreenNail extends SurfaceTextureScreenNail implements MoviePl
         }
     }
 
+    private Object mStopObject = new Object();
+
     @Override
     public void stop() {
         if (mPlayTask != null) {
             mPlayTask.requestStop();
             mPlayTask.waitForStop();
+            if (mPlayTask != null) {
+                synchronized (mStopObject) {
+                    try {
+                        mStopObject.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 

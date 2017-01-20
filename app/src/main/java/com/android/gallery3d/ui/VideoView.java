@@ -44,7 +44,7 @@ public class VideoView extends GLView {
     }
 
     public void stop(){
-        mScreenNail.stopPlayback();
+      //  mScreenNail.stopPlayback();
     }
     public void setmScreenNail(VideoScreenNail mScreenNail) {
         this.mScreenNail = mScreenNail;

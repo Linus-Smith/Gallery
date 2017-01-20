@@ -7,17 +7,20 @@ import com.android.gallery3d.glrenderer.GLCanvas;
 import com.android.gallery3d.mediaCore.Utils.Annotation;
 import com.android.gallery3d.mediaCore.Utils.Utils;
 import com.android.gallery3d.mediaCore.Utils.VideoScreenNail;
+import com.android.gallery3d.mediaCore.anim.ComboStream;
 import com.android.gallery3d.mediaCore.anim.MediaStream;
+import com.android.gallery3d.mediaCore.anim.PlayBits;
 import com.android.gallery3d.mediaCore.view.Inte.OnNotifyChangeListener;
-import com.android.gallery3d.mediaCore.view.Inte.StateIs;
+import com.android.gallery3d.mediaCore.view.Inte.StatusIs;
 import com.android.gallery3d.mediaCore.view.Inte.VIPlayControl;
 import com.android.gallery3d.ui.GLView;
+
 
 /**
  * Created by linusyang on 16-12-1.
  */
 
-public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeListener, StateIs {
+public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeListener, StatusIs {
 
     public interface PlayStateListener {
         void onCompletion();
@@ -64,14 +67,24 @@ public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeLi
             videoScreenNail.draw(canvas,0,0,0,0);
             first = true;
         }
+        boolean requestRender = false;
+        requestRender |= mPlayBits.calculate(Utils.getCurrentTime());
         mPlayBits.onDraw(canvas);
+        if(mPlayBits.isCompletion()) {
+            mPlayBits.stop();
+            notifyCompletion();
+        }
+        if (requestRender) doInvalidate();
     }
 
-    public void prepare(MediaStream mediaStream) {
+    public void prepare(ComboStream comboStream, long playDuration, long transitionDuration, int transitionMode) {
+        Utils.checkNull(comboStream, "VideoVIew prepare NULL");
+        mPlayBits.prepare(comboStream, playDuration, transitionDuration, transitionMode);
+    }
+    public void prepare(MediaStream mediaStream, long playDuration) {
         Utils.checkNull(mediaStream, "VideoVIew prepare NULL");
-        mPlayBits.prepare(mediaStream);
+        mPlayBits.prepare(mediaStream, playDuration);
     }
-
 
     @Override
     @Annotation.IInterface("VIPlayControl")
@@ -121,6 +134,7 @@ public class VideoView extends GLView implements VIPlayControl, OnNotifyChangeLi
         return mPlayBits.getProgress();
     }
 
+    @Deprecated
     @Override
     public void setDuration(long duration) {
         mPlayBits.setDuration(duration);

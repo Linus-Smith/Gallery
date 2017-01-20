@@ -8,22 +8,20 @@ import com.android.gallery3d.glrenderer.GLCanvas;
 
 public class AlphaComboStream extends ComboStream {
 
-
     public AlphaComboStream(MediaStream mediaStream) {
         super(mediaStream);
     }
 
     @Override
-    public void onDrawPreStream(GLCanvas canvas, long animTime, float gradientIndex) {
+    protected void onDrawPreStream(GLCanvas canvas, float gradientIndex) {
         canvas.setAlpha(1f - gradientIndex);
-        mPreStream.onDraw(canvas);
+        mPreStream.apply(canvas);
     }
 
     @Override
-    public void onDrawCurrentStream(GLCanvas canvas, long animTime, float gradientIndex) {
+    protected void onDrawCurrentStream(GLCanvas canvas, float gradientIndex) {
         canvas.setAlpha(gradientIndex);
-        mCurrentStream.calculate(animTime);
-        mCurrentStream.onDraw(canvas);
+        mCurrentStream.apply(canvas);
     }
 
 

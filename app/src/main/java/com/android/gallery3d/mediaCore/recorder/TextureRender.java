@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.gallery3d.mediaCore.recoder;
+package com.android.gallery3d.mediaCore.recorder;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES11Ext;
