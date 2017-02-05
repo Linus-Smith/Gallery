@@ -1,6 +1,7 @@
 package com.android.gallery3d.mediaCore.anim;
 
 import android.graphics.Bitmap;
+import android.view.Surface;
 
 import com.android.gallery3d.glrenderer.BitmapTexture;
 import com.android.gallery3d.glrenderer.GLCanvas;
@@ -28,6 +29,7 @@ public class VideoStream extends MediaStream {
         mVideoScreenNail  = videoScreenNail;
         mVideoScreenNail.setmFile(videoPath);
         mVideoPath = videoPath;
+        //mStatusControl = new VideoStatusControl(mVideoPath, new Surface(mVideoScreenNail.getSurfaceTexture()));
     }
 
     public VideoStream(Bitmap bitmap, File videoPath, VideoScreenNail videoScreenNail, int videoWidth, int videoHeight) {
@@ -41,12 +43,12 @@ public class VideoStream extends MediaStream {
     void setResolution(int width, int height) {
         super.setResolution(width, height);
         float ratio = Math.min(((float)mWidth) / mVideoWidth, ((float)mHeight) / mVideoHeight);
-        if (ratio > 1.0f) {
-            ratio = 1.0f;
-            isBlurEdge = false;
-        } else {
-            isBlurEdge = true;
-        }
+//        if (ratio > 1.0f) {
+//            ratio = 1.0f;
+//            isBlurEdge = false;
+//        } else {
+//            isBlurEdge = true;
+//        }
         mVideoWidth = (int)(mVideoWidth * ratio);
         mVideoHeight = (int)(mVideoHeight * ratio);
         drawX = (mWidth - mVideoWidth) / 2;
@@ -55,9 +57,9 @@ public class VideoStream extends MediaStream {
 
     @Override
     protected void onDraw(GLCanvas canvas) {
-        if(isBlurEdge){
-            canvas.drawTexture(mBlurTexture, 0, 0, mWidth, mHeight);
-        }
+//        if(isBlurEdge){
+//            canvas.drawTexture(mBlurTexture, 0, 0, mWidth, mHeight);
+//        }
         mVideoScreenNail.draw(canvas, drawX, drawY, mVideoWidth, mVideoHeight);
     }
 
@@ -82,8 +84,6 @@ public class VideoStream extends MediaStream {
     }
     @Override
     void pause() {
-
-
         if(mStatusControl.getPlayState() == PLAY_STATE_START){
             mVideoScreenNail.pause();
         }

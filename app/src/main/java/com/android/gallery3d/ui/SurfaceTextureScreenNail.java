@@ -19,6 +19,7 @@ package com.android.gallery3d.ui;
 import android.annotation.TargetApi;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
+import android.widget.*;
 
 import com.android.gallery3d.common.ApiHelper;
 import com.android.gallery3d.glrenderer.ExtTexture;
@@ -111,6 +112,7 @@ public abstract class SurfaceTextureScreenNail implements ScreenNail,
             mSurfaceTexture.updateTexImage();
             mSurfaceTexture.getTransformMatrix(mTransform);
 
+            System.out.println((mSurfaceTexture.getTimestamp() / 1000)+"====---");
             // Flip vertically.
             canvas.save(GLCanvas.SAVE_FLAG_MATRIX);
             int cx = x + width / 2;

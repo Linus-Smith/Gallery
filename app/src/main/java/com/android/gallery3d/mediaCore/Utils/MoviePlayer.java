@@ -443,14 +443,14 @@ public class MoviePlayer {
 //                        frameCallback.preRender(mBufferInfo.presentationTimeUs);
 //                        Log.d(TAG, " mBufferInfo.presentationTimeUs = "+mBufferInfo.presentationTimeUs);
 //                    }
-                    if(mBufferInfo.presentationTimeUs<seekTime){
-                        if (doRender && frameCallback != null) {
-                            frameCallback.setPrevPresentUsec(mBufferInfo.presentationTimeUs);
-//                        Log.d(TAG, " mBufferInfo.presentationTimeUs = "+mBufferInfo.presentationTimeUs);
-                        }
-                        decoder.releaseOutputBuffer(decoderStatus, false);
-                        Log.d(TAG, " mBufferInfo. 1presentationTimeUs = "+mBufferInfo.presentationTimeUs);
-                    }else {
+//                    if(mBufferInfo.presentationTimeUs<seekTime){
+//                        if (doRender && frameCallback != null) {
+//                            frameCallback.setPrevPresentUsec(mBufferInfo.presentationTimeUs);
+////                        Log.d(TAG, " mBufferInfo.presentationTimeUs = "+mBufferInfo.presentationTimeUs);
+//                        }
+//                        decoder.releaseOutputBuffer(decoderStatus, false);
+//                        Log.d(TAG, " mBufferInfo. 1presentationTimeUs = "+mBufferInfo.presentationTimeUs);
+//                    }else {
                         seekTime = 0;
                         if (doRender && frameCallback != null) {
                             frameCallback.preRender(mBufferInfo.presentationTimeUs);
@@ -465,7 +465,7 @@ public class MoviePlayer {
                             updatePlayTimeCallback.updateCurrentPlayTime(mBufferInfo.presentationTimeUs/1000);
                         }
                         Log.d(TAG, " mBufferInfo. 2presentationTimeUs = "+mBufferInfo.presentationTimeUs);
-                    }
+                //    }
 
                     if (doLoop) {
                         Log.d(TAG, "Reached EOS, looping");
