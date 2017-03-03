@@ -165,7 +165,6 @@ public class VideoStatusControl extends BaseStatusControl {
 
 
     private void runDecode(long  time) {
-        System.out.println(mDecodeTime+"======"+time);
         if(mDecodeTime > time) return;
         //input
         int inputBufIndex = mMediaCodec.dequeueInputBuffer(TIMEOUT_USE);
@@ -214,6 +213,7 @@ public class VideoStatusControl extends BaseStatusControl {
                             decoderStatus);
         } else {
             boolean doRender = (mBufferInfo.size != 0);
+            System.out.println(doRender+"===="+"哈哈哈");
             mMediaCodec.releaseOutputBuffer(decoderStatus, doRender);
             Log.d(TAG, " mBufferInfo. 2presentationTimeUs = "+mBufferInfo.presentationTimeUs);
         }

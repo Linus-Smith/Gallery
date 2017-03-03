@@ -1,6 +1,9 @@
 package com.android.gallery3d.mediaCore.anim;
 
 import android.graphics.Bitmap;
+import android.graphics.SurfaceTexture;
+import android.opengl.GLES20;
+import android.util.Log;
 import android.view.Surface;
 
 import com.android.gallery3d.glrenderer.BitmapTexture;
@@ -23,14 +26,27 @@ public class VideoStream extends MediaStream {
     private VideoScreenNail mVideoScreenNail;
     protected BitmapTexture mBlurTexture;
     private File mVideoPath;
+    private static Surface mSurface ;
+    private MediaPlayerC mediaPlayerC;
 
     public VideoStream(File videoPath, VideoScreenNail videoScreenNail) {
         if(!videoPath.exists()) throw new RuntimeException("video not exists ");
+        if(mSurface == null) {
+            mSurface = new Surface(videoScreenNail.getSurfaceTexture());
+        }
         mVideoScreenNail  = videoScreenNail;
         mVideoScreenNail.setmFile(videoPath);
         mVideoPath = videoPath;
-        //mStatusControl = new VideoStatusControl(mVideoPath, new Surface(mVideoScreenNail.getSurfaceTexture()));
+        mediaPlayerC = MediaPlayerC.create(videoPath);
+        mediaPlayerC.setSurface(mSurface);
+        mediaPlayerC.readBuffer();
+        mediaPlayerC.outBufferToSurface();
+//        mVideoScreenNail.getSurfaceTexture().updateTexImage();
+
+       // mStatusControl = new VideoStatusControl(mVideoPath, new Surface(mVideoScreenNail.getSurfaceTexture()));
     }
+
+
 
     public VideoStream(Bitmap bitmap, File videoPath, VideoScreenNail videoScreenNail, int videoWidth, int videoHeight) {
         this(videoPath, videoScreenNail);
@@ -57,10 +73,18 @@ public class VideoStream extends MediaStream {
 
     @Override
     protected void onDraw(GLCanvas canvas) {
-//        if(isBlurEdge){
-//            canvas.drawTexture(mBlurTexture, 0, 0, mWidth, mHeight);
-//        }
+
+        mediaPlayerC.readBuffer();
+        mediaPlayerC.outBufferToSurface();
+        if(isBlurEdge){
+            canvas.drawTexture(mBlurTexture, 0, 0, mWidth, mHeight);
+        }
         mVideoScreenNail.draw(canvas, drawX, drawY, mVideoWidth, mVideoHeight);
+
+
+        SurfaceTexture mSurfaceTexture = mVideoScreenNail.getSurfaceTexture();
+
+     //   System.out.println((mSurfaceTexture.getTimestamp() / 10000)+"======"+ mediaPlayerC.getSimpleTime());
     }
 
 
@@ -94,6 +118,8 @@ public class VideoStream extends MediaStream {
     void stop(){
         super.stop();
         mVideoScreenNail.stop();
+        mediaPlayerC.release();
+   //     mVideoScreenNail.releaseSurfaceTexture();
     }
 
     @Override

@@ -38,6 +38,7 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
     private VideoView mVideo;
     private RecoderRender mRender;
     private int bitmapIndex = 1;
+    private int videoIndex = 1;
     private Button btPrepare;
     private Button btStart;
     private Button btRestartr;
@@ -91,7 +92,6 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
 
     private Bitmap getBitmap() {
         if (bitmapIndex == 5) {
-            bitmapIndex = 1;
             return  null;
         }
 
@@ -102,13 +102,11 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
         return mBitmap;
     }
 
-    private File getFile(boolean isFirst){
-        if(isFirst){
-            return new File("/storage/emulated/0/1.mp4");
-        }else {
-            return new File("/storage/emulated/0/sintel.mp4");
-        }
-
+    private File getFile(){
+        if(videoIndex == 4 ) videoIndex = 1;
+          File  mFile  = new File("/storage/emulated/0/"+videoIndex+".mp4");
+        videoIndex++;
+        return mFile;
     }
     @Override
     public void onClick(View v) {
@@ -177,15 +175,24 @@ public class VideoViewDome2 extends Activity implements VideoView.PlayStateListe
             @Override
             public void run() {
 
-                File mFile = getFile(false);
-                Bitmap mBitmap = getBitmap();
-                if(mBitmap != null) {
-                    AlphaComboStream alphaComboStream = new AlphaComboStream(new ZoomBmStream(mBitmap, 0));
-                    mVideo.prepare(alphaComboStream, 4000, 1000, StatusIs.TRANSITION_PLAY_MODE_MERGE);
-                } else {
+//                Bitmap mBitmap = getBitmap();
+//                File mFile ;
+//                if(mBitmap == null) {
+//                 mFile  = getFile();
+//                    if(mFile == null) {
+//                        bitmapIndex = 1;
+//                        mBitmap  = getBitmap();
+//                    }
+//                }
+//                if(mBitmap != null) {
+//                    AlphaComboStream alphaComboStream = new AlphaComboStream(new ZoomBmStream(mBitmap, 0));
+//                    mVideo.prepare(alphaComboStream, 4000, 1000, StatusIs.TRANSITION_PLAY_MODE_MERGE);
+//                } else {
+
+                  File mFile = getFile();
                     MediaStream mediaStream = new VideoStream(mFile, mVideo.getVideoScreenNail());
-                    mVideo.prepare(mediaStream, 8000);
-                }
+                    mVideo.prepare(mediaStream, 5000);
+               // }
 
                 tvDuTime.setText(mVideo.getDuration() + " ");
                 mSeekBar.setMax((int) mVideo.getDuration());
