@@ -18,6 +18,7 @@ package com.android.gallery3d.app;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Rect;
 import android.net.Uri;
@@ -25,6 +26,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
+import android.support.v7.app.AlertDialog;
 import android.view.HapticFeedbackConstants;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -43,6 +45,7 @@ import com.android.gallery3d.filtershow.crop.CropActivity;
 import com.android.gallery3d.filtershow.crop.CropExtras;
 import com.android.gallery3d.glrenderer.FadeTexture;
 import com.android.gallery3d.glrenderer.GLCanvas;
+import com.android.gallery3d.photo.activity.PhotoViewActivity;
 import com.android.gallery3d.ui.ActionModeHandler;
 import com.android.gallery3d.ui.ActionModeHandler.ActionModeListener;
 import com.android.gallery3d.ui.AlbumSlotRenderer;
@@ -291,7 +294,7 @@ public class AlbumPage extends ActivityState implements GalleryActionBar.Cluster
         } else {
             // Get into the PhotoPage.
             // mAlbumView.savePositions(PositionRepository.getInstance(mActivity));
-            Bundle data = new Bundle();
+            final Bundle data = new Bundle();
             data.putInt(PhotoPage.KEY_INDEX_HINT, slotIndex);
             data.putParcelable(PhotoPage.KEY_OPEN_ANIMATION_RECT,
                     mSlotView.getSlotRect(slotIndex, mRootPane));
@@ -307,8 +310,30 @@ public class AlbumPage extends ActivityState implements GalleryActionBar.Cluster
             if (startInFilmstrip) {
                 mActivity.getStateManager().switchState(this, FilmstripPage.class, data);
             } else {
-                mActivity.getStateManager().startStateForResult(
-                            SinglePhotoPage.class, REQUEST_PHOTO, data);
+                AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
+                builder.setMessage("是否要跳转新的PhotoView?");
+                builder.setTitle("提示");
+                builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                       Intent intent = new Intent(mActivity, PhotoViewActivity.class);
+                        intent.putExtra("DOME", data);
+                        mActivity.startActivity(intent);
+                    }
+                });
+                builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mActivity.getGLRoot().lockRenderThread();
+                        mActivity.getStateManager().startStateForResult(
+                                SinglePhotoPage.class, REQUEST_PHOTO, data);
+                        mActivity.getGLRoot().unlockRenderThread();
+                        dialog.dismiss();
+                    }
+                });
+
+                builder.create().show();
+
             }
         }
     }

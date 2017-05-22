@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
 
     defaultConfig {
         applicationId "com.android.gallery3d"
         minSdkVersion 21
-        targetSdkVersion 23
+        targetSdkVersion 25
         versionCode 1
         versionName "1.0"
     }
@@ -26,7 +26,7 @@ android {
 dependencies {
     compile files('libs/gallery3d_common2_intermediate.jar')
     compile files('libs/mp4_parser.jar')
-    compile files('libs/support_v13_intermediate.jar')
     compile files('libs/xmp.jar')
     compile files('libs/android-support-v8-renderscript.jar')
+    compile 'com.android.support:appcompat-v7:25+'
 }
