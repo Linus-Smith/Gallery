@@ -11,6 +11,7 @@ import android.widget.ImageView;
 import com.android.gallery3d.R;
 import com.android.gallery3d.photo.utils.RangeArray;
 import com.android.gallery3d.photo.view.PrettyImageView;
+import com.android.gallery3d.photo.view.ScreenNail;
 
 import java.util.Random;
 
@@ -18,40 +19,42 @@ import java.util.Random;
  * Created by Linus on 2017/5/16.
  */
 
-public class PhotoViewAdapter extends PagerAdapter implements ViewPager.OnPageChangeListener{
+public class PhotoViewAdapter extends PagerAdapter implements ViewPager.OnPageChangeListener {
 
     public interface DataCommunicationCallBack {
         public int getItemCount();
+
+        public void moveTo(int index);
+
+        public ScreenNail getScreenNail(int offset);
     }
 
     public static final int SCREEN_NAIL_MAX = 3;
     private Context mContext;
     private DataCommunicationCallBack mDataCommunicationCallBack;
+    private int mDataMoveToPosition = -1;
 
-    private RangeArray<ImageView>  mCacheImages = new RangeArray<ImageView>(-SCREEN_NAIL_MAX, SCREEN_NAIL_MAX);
+
+    private RangeArray<PrettyImageView> mCacheImages = new RangeArray<>(-SCREEN_NAIL_MAX, SCREEN_NAIL_MAX);
 
 
     public PhotoViewAdapter(Context context) {
 
         mContext = context;
         for (int i = -SCREEN_NAIL_MAX; i <= SCREEN_NAIL_MAX; ++i) {
-            ImageView view = new ImageView(context);
+            PrettyImageView view = new PrettyImageView(context);
             view.setBackgroundResource(R.mipmap.image1);
             mCacheImages.put(i, view);
         }
-        System.out.println(mCacheImages.getSize()+"==========ss=======33");
     }
 
     public void setDataCommunicationCallBack(DataCommunicationCallBack dataCommunicationCallBack) {
         this.mDataCommunicationCallBack = dataCommunicationCallBack;
     }
 
-
-
-
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        ImageView imageView = mCacheImages.get( position % (mCacheImages.getSize()), false);
+        PrettyImageView imageView = mCacheImages.get(position % (mCacheImages.getSize()), false);
         container.addView(imageView);
         return imageView;
     }
@@ -61,6 +64,19 @@ public class PhotoViewAdapter extends PagerAdapter implements ViewPager.OnPageCh
         container.removeView(mCacheImages.get(position % (mCacheImages.getSize()), false));
     }
 
+    private void updateCacheData(int position) {
+        int dataPos = (position / mCacheImages.getSize() + 1) * SCREEN_NAIL_MAX;
+        if (mDataMoveToPosition != dataPos) {
+            mDataMoveToPosition = dataPos;
+            mDataCommunicationCallBack.moveTo(dataPos);
+            for (int i = -SCREEN_NAIL_MAX; i <= SCREEN_NAIL_MAX; ++i) {
+                PrettyImageView  prettyImageView  =  mCacheImages.get(i, true);
+                prettyImageView.setScreenNail(mDataCommunicationCallBack.getScreenNail(i));
+            }
+        }
+    }
+
+
     @Override
     public int getItemPosition(Object object) {
         return super.getItemPosition(object);
@@ -68,7 +84,7 @@ public class PhotoViewAdapter extends PagerAdapter implements ViewPager.OnPageCh
 
     @Override
     public int getCount() {
-        return  mDataCommunicationCallBack.getItemCount();
+        return mDataCommunicationCallBack.getItemCount();
     }
 
     @Override
@@ -83,7 +99,7 @@ public class PhotoViewAdapter extends PagerAdapter implements ViewPager.OnPageCh
 
     @Override
     public void onPageSelected(int position) {
-
+        updateCacheData(position);
     }
 
     @Override

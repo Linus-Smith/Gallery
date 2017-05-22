@@ -22,5 +22,5 @@ public interface ScreenNail {
     public void recycle();
 
     // This is only used by TileImageView to back up the tiles not yet loaded.
-    public void draw(GLCanvas canvas, RectF source, RectF dest);
+    public void draw(Canvas canvas, RectF source, RectF dest);
 }

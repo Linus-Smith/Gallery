@@ -36,10 +36,11 @@ import com.android.gallery3d.data.MediaObject;
 import com.android.gallery3d.data.MediaSet;
 import com.android.gallery3d.data.Path;
 import com.android.gallery3d.glrenderer.TiledTexture;
+import com.android.gallery3d.photo.view.BitmapScreenNail;
 import com.android.gallery3d.ui.PhotoView;
-import com.android.gallery3d.ui.ScreenNail;
+import com.android.gallery3d.photo.view.ScreenNail;
 import com.android.gallery3d.ui.SynchronizedHandler;
-import com.android.gallery3d.ui.TileImageViewAdapter;
+import com.android.gallery3d.photo.adapter.TileImageViewAdapter;
 import com.android.gallery3d.ui.TiledScreenNail;
 import com.android.gallery3d.util.Future;
 import com.android.gallery3d.util.FutureListener;
@@ -302,10 +303,10 @@ public class PhotoDataAdapter implements PhotoViewAdapter.DataCommunicationCallB
         entry.screenNailTask = null;
 
         // Combine the ScreenNails if we already have a BitmapScreenNail
-        if (entry.screenNail instanceof TiledScreenNail) {
-            TiledScreenNail original = (TiledScreenNail) entry.screenNail;
-            screenNail = original.combine(screenNail);
-        }
+       // if (entry.screenNail instanceof TiledScreenNail) {
+       //     TiledScreenNail original = (TiledScreenNail) entry.screenNail;
+       //     screenNail = original.combine(screenNail);
+       // }
 
         if (screenNail == null) {
             entry.failToLoad = true;
@@ -440,11 +441,12 @@ public class PhotoDataAdapter implements PhotoViewAdapter.DataCommunicationCallB
         }
     }
 
+    @Override
     public void moveTo(int index) {
         updateCurrentIndex(index);
     }
 
-
+    @Override
     public ScreenNail getScreenNail(int offset) {
         int index = mCurrentIndex + offset;
         if (index < 0 || index >= mSize || !mIsActive) return null;
@@ -685,8 +687,8 @@ public class PhotoDataAdapter implements PhotoViewAdapter.DataCommunicationCallB
         public ScreenNail run(JobContext jc) {
             // We try to get a ScreenNail first, if it fails, we fallback to get
             // a Bitmap and then wrap it in a BitmapScreenNail instead.
-            ScreenNail s = mItem.getScreenNail();
-            if (s != null) return s;
+           //   ScreenNail s = mItem.getScreenNail();
+           //   if (s != null) return s;
 
             // If this is a temporary item, don't try to get its bitmap because
             // it won't be available. We will get its bitmap after a data reload.
@@ -700,7 +702,7 @@ public class PhotoDataAdapter implements PhotoViewAdapter.DataCommunicationCallB
                 bitmap = BitmapUtils.rotateBitmap(bitmap,
                     mItem.getRotation() - mItem.getFullImageRotation(), true);
             }
-            return bitmap == null ? null : new TiledScreenNail(bitmap);
+            return bitmap == null ? null : new BitmapScreenNail(bitmap);
         }
     }
 
@@ -747,7 +749,7 @@ public class PhotoDataAdapter implements PhotoViewAdapter.DataCommunicationCallB
     private ScreenNail newPlaceholderScreenNail(MediaItem item) {
         int width = item.getWidth();
         int height = item.getHeight();
-        return new TiledScreenNail(width, height);
+        return new BitmapScreenNail(width, height);
     }
 
     // Returns the task if we started the task or the task is already started.
