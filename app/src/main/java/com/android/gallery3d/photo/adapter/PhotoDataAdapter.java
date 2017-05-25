@@ -82,7 +82,6 @@ public class PhotoDataAdapter implements PhotoViewAdapter.DataCommunicationCallB
     private static ImageFetch[] sImageFetchSeq;
 
 
-
     private static class ImageFetch {
         int indexOffset;
         int imageBit;
@@ -287,6 +286,7 @@ public class PhotoDataAdapter implements PhotoViewAdapter.DataCommunicationCallB
 //                mSize - 1 - mCurrentIndex);
     }
 
+    @Override
     public void setDataListener(DataListener listener) {
         mDataListener = listener;
     }

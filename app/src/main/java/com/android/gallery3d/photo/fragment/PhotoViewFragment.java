@@ -79,8 +79,8 @@ public class PhotoViewFragment extends Fragment {
                     .getMediaSet(mSetPathString);
         }
 
-        mPhotoViewAdapter = new PhotoViewAdapter(getActivity());
         mPhotoDataAdapter = new PhotoDataAdapter(mContext, mMediaSet, itemPath, currentIndex);
+        mPhotoViewAdapter = new PhotoViewAdapter(getActivity());
         mPhotoViewAdapter.setDataCommunicationCallBack(mPhotoDataAdapter);
         mViewPager.setAdapter(mPhotoViewAdapter);
         mViewPager.addOnPageChangeListener(mPhotoViewAdapter);
