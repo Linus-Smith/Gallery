@@ -96,7 +96,6 @@ public final class GalleryActivity extends AbstractGalleryActivity implements On
             startViewAction(intent);
         } else {
           startDefaultPage();
-        //  getStateManager().startState(DomeActivity.class, null);
         }
     }
 
@@ -231,7 +230,7 @@ public final class GalleryActivity extends AbstractGalleryActivity implements On
 
     @Override
     protected void onResume() {
-        Utils.assertTrue(getStateManager().getStateCount() > 0);
+//        Utils.assertTrue(getStateManager().getStateCount() > 0);
         super.onResume();
         if (mVersionCheckDialog != null) {
             mVersionCheckDialog.show();

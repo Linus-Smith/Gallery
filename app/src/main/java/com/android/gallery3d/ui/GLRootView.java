@@ -22,6 +22,7 @@ import android.graphics.Matrix;
 import android.graphics.PixelFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
+import android.os.Looper;
 import android.os.Process;
 import android.os.SystemClock;
 import android.util.AttributeSet;
@@ -390,7 +391,6 @@ public class GLRootView extends GLSurfaceView
 
     private void onDrawFrameLocked(GL10 gl) {
         if (DEBUG_FPS) outputFps();
-
         // release the unbound textures and deleted buffers.
         mCanvas.deleteRecycledResources();
 

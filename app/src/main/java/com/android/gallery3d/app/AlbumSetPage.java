@@ -615,7 +615,7 @@ public class AlbumSetPage extends ActivityState implements
                 return true;
             }
             case R.id.action_settings: {
-                activity.startActivity(new Intent(activity, GallerySettings.class));
+                activity.startActivity(new Intent(activity, VideoViewDome2.class));
                 return true;
             }
             default:

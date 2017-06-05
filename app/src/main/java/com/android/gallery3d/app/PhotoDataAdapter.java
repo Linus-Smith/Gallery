@@ -461,7 +461,8 @@ public class PhotoDataAdapter implements PhotoPage.Model {
             if (offset == 0) updateTileProvider(entry);
         }
 
-        return entry.screenNail;
+        //return entry.screenNail;
+        return null;
     }
 
     @Override

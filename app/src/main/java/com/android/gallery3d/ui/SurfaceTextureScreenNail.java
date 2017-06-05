@@ -19,6 +19,9 @@ package com.android.gallery3d.ui;
 import android.annotation.TargetApi;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
+import android.opengl.GLES20;
+import android.util.*;
+import android.widget.*;
 
 import com.android.gallery3d.common.ApiHelper;
 import com.android.gallery3d.glrenderer.ExtTexture;
@@ -53,6 +56,21 @@ public abstract class SurfaceTextureScreenNail implements ScreenNail,
         }
     }
 
+    private int getTexName() {
+        int[] mTempIntArray = new int[1];
+        GLES20.glGenTextures(1, mTempIntArray, 0);
+        checkError();
+        return mTempIntArray[0];
+    }
+
+    public void checkError() {
+        int error = GLES20.glGetError();
+        if (error != 0) {
+            Throwable t = new Throwable();
+            android.util.Log.e("linus", "GL error: " + error, t);
+        }
+    }
+
     @TargetApi(ApiHelper.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
     private static void setDefaultBufferSize(SurfaceTexture st, int width, int height) {
         if (ApiHelper.HAS_SET_DEFALT_BUFFER_SIZE) {
@@ -77,9 +95,9 @@ public abstract class SurfaceTextureScreenNail implements ScreenNail,
             mHasTexture = false;
         }
         mExtTexture.recycle();
-        mExtTexture = null;
+       // mExtTexture = null;
         releaseSurfaceTexture(mSurfaceTexture);
-        mSurfaceTexture = null;
+     //   mSurfaceTexture = null;
     }
 
     public void setSize(int width, int height) {
@@ -108,7 +126,7 @@ public abstract class SurfaceTextureScreenNail implements ScreenNail,
     public void draw(GLCanvas canvas, int x, int y, int width, int height) {
         synchronized (this) {
             if (!mHasTexture) return;
-            mSurfaceTexture.updateTexImage();
+           mSurfaceTexture.updateTexImage();
             mSurfaceTexture.getTransformMatrix(mTransform);
 
             // Flip vertically.
