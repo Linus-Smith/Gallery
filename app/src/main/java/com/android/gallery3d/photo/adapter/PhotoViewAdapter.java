@@ -41,6 +41,8 @@ public class PhotoViewAdapter extends PagerAdapter implements OnPageChangeListen
     public static final int SCREEN_NAIL_MAX = 3;
     private Context mContext;
     private DataCommunicationCallBack mDataCommunicationCallBack;
+    private int mCurrentIndex;
+    private boolean isLoadingFinish = false;
 
 
     private RangeArray<PrettyImageView> mCacheImages = new RangeArray<>(-SCREEN_NAIL_MAX, SCREEN_NAIL_MAX);
@@ -71,14 +73,17 @@ public class PhotoViewAdapter extends PagerAdapter implements OnPageChangeListen
         container.removeView(mCacheImages.get(position % (mCacheImages.getSize()), false));
     }
 
+    private void moveToPosition(int position) {
+        mDataCommunicationCallBack.moveTo(position);
+    }
+
     //TODO LOW
     private void updateCacheData(int position) {
-        mDataCommunicationCallBack.moveTo(position);
         int currentScrPos =  position % mCacheImages.getSize();
         int mapPos =  currentScrPos - SCREEN_NAIL_MAX;
         for (int i = -SCREEN_NAIL_MAX; i <= SCREEN_NAIL_MAX; ++i) {
             PrettyImageView prettyImageView = mCacheImages.get(i, true);
-            int offset = ((mapPos - i) * -1) ;
+            int offset = ((mapPos - i) * -1);
             if(offset > SCREEN_NAIL_MAX) {
                 offset = (offset - SCREEN_NAIL_MAX )* -1 ;
                 if(offset == -1) offset = -3;
@@ -88,9 +93,11 @@ public class PhotoViewAdapter extends PagerAdapter implements OnPageChangeListen
                 if(offset == 1) offset = 3;
                 else if(offset == 3) offset = 1;
             }
+
             prettyImageView.setScreenNail(mDataCommunicationCallBack.getScreenNail(offset));
         }
     }
+
 
 
     @Override
@@ -114,7 +121,7 @@ public class PhotoViewAdapter extends PagerAdapter implements OnPageChangeListen
 
     @Override
     public void onPageSelected(int position) {
-        updateCacheData(position);
+        moveToPosition(position);
     }
 
     @Override
@@ -125,18 +132,22 @@ public class PhotoViewAdapter extends PagerAdapter implements OnPageChangeListen
     private PhotoDataAdapter.DataListener mDataListener = new PhotoDataAdapter.DataListener() {
         @Override
         public void onPhotoChanged(int index, Path item) {
+            mCurrentIndex = index;
+            if(isLoadingFinish) {
+                updateCacheData(index);
+            }
         }
 
         @Override
         public void onLoadingStarted() {
-
+            isLoadingFinish = false;
         }
 
         @Override
         public void onLoadingFinished(boolean loadingFailed) {
-
+            isLoadingFinish = true;
+            updateCacheData(mCurrentIndex);
         }
     };
-
 
 }

@@ -88,6 +88,7 @@ public class MovieActivity extends Activity {
         mFinishOnCompletion = intent.getBooleanExtra(
                 MediaStore.EXTRA_FINISH_ON_COMPLETION, true);
         mTreatUpAsBack = intent.getBooleanExtra(KEY_TREAT_UP_AS_BACK, false);
+        System.out.println(intent.getData()+"=======================33");
         mPlayer = new MoviePlayer(rootView, this, intent.getData(), savedInstanceState,
                 !mFinishOnCompletion) {
             @Override

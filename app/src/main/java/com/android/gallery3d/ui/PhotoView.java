@@ -603,7 +603,7 @@ public class PhotoView extends GLView {
         public void reload() {
             // mImageWidth and mImageHeight will get updated
             mTileView.notifyModelInvalidated();
-
+            System.out.println("重新加载哈哈====");
             mIsCamera = mModel.isCamera(0);
             mIsPanorama = mModel.isPanorama(0);
             mIsStaticCamera = mModel.isStaticCamera(0);

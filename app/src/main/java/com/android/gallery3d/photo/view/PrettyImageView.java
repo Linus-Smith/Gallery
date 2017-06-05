@@ -30,6 +30,7 @@ public class PrettyImageView extends AppCompatImageView{
 
     public void setScreenNail(ScreenNail screenNail) {
         mScreenNail = screenNail;
+        invalidate();
     }
 
     @Override
